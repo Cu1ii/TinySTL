@@ -170,6 +170,21 @@ namespace tstl
         return unchecked_copy_forward(first, last, result);
     }
 
+    /**
+     * copy_if
+     * 把 [first, last) 内满足一元操作运算 unary_pred 的元素拷贝到以 result 为起始的位置上
+     */
+     template <class InputIterator, class OutputIterator, class UnaryPredicate>
+     OutputIterator
+     copy_if(InputIterator first, InputIterator last, OutputIterator result, UnaryPredicate unary_pred)
+     {
+        for (; first != last; ++first)
+        {
+            if (unary_pred(*first))
+                *result++ = *first;
+        }
+        return result;
+     }
 
 
 }
