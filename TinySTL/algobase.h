@@ -1,98 +1,177 @@
 //
-// Created by Cu1 on 2022/3/7.
+// Created by Cu1 on 2022/3/10.
 //
 
 #ifndef TINYSTL_ALGOBASE_H
 #define TINYSTL_ALGOBASE_H
 
-#include <cstddef>
-#include "type_traits.h"
+// 实现了基本算法
+#include <cstring>
+#include "iterator.h"
+#include "util.h"
 
 namespace tstl
 {
-    // move
+    // max 二者取最大 并返回最大值
     template <class T>
-    typename std::remove_reference<T>::type move(T&& arg) noexcept
+    const T& max(const T& lhs, const T& rhs)
     {
-        return static_cast<typename std::remove_reference<T>::type&&>(arg);
+        return lhs < rhs ? rhs : lhs;
     }
 
-    //forward
+    // max 函数使用者提供比较函数对象 true 表示 lhs < rhs
+    template <class T, class Compare>
+    const T& max(const T& lhs, const T& rhs, Compare cmp)
+    {
+        return cmp(lhs, rhs) ? rhs : lhs;
+    }
+
+    // min 二者取最小 并返回最小值
     template <class T>
-    T&& forward(typename std::remove_reference<T>::type& arg) noexcept
+    const T& min(const T& lhs, const T& rhs)
     {
-        return static_cast<T&&>(arg);
+        return lhs < rhs ? lhs : rhs;
     }
 
-    template <class T>
-    T&& forward(typename std::remove_reference<T>::type&& arg) noexcept
+    // min 函数使用者提供比较函数对象 true 表示 lhs < rhs
+    template <class T, class Compare>
+    const T& min(const T& lhs, const T& rhs, Compare cmp)
     {
-        static_assert(!std::is_lvalue_reference<T>::value, "bad forward");
-        return static_cast<T&&>(arg);
+        return cmp(rhs, lhs) ? rhs : lhs;
     }
 
-    // swap
-    template <class Tp>
-    void swap(Tp& lhs, Tp& rhs)
-    {
-        Tp tmp(tstl::move(lhs));
-        lhs = tstl::move(rhs);
-        rhs = tstl::move(tmp);
-    }
-
-    // 将前两个迭代器之间的元素交换到以第三个迭代器为开始的地址, 返回交换完成后第二个迭代器的结束位置
-    template <class ForwardIter1, class ForwardIter2>
-    ForwardIter2 swap_range(ForwardIter1 first1, ForwardIter1 last1, ForwardIter2 first2)
-    {
-        for (; first1 != last1; ++first1, (void) ++first2)
-            tstl::swap(*first1, *first2);
-        return first2;
-    }
-
-    // 对于数组交换的偏特化
-    template <class Tp, size_t N>
-    void swap(Tp(&a)[N], Tp(&b)[N])
-    {
-        tstl::swap_range(a, a + N, b);
-    }
-
-    //-----------------------------------------pair-------------------------------------------------
     /**
-     * @name pair
-     * @details: 两个模板参数分别表示两个数据类型, 使用 first 和 second 来分别表示第一个数据和第二个数据
+     * @name iter_swap
+     * @details 将两个迭代器所指对象交换
      */
-     template <class T1, class T2>
-     struct pair
-     {
-         typedef T1     first_type;
-         typedef T2     second_type;
+     template <class FIter1, class FIter2>
+     void iter_swap(FIter1 lhs, FIter2 rhs)
+    {
+         tstl::swap(*lhs, *rhs);
+    }
 
-         first_type     first; // 第一个数据
-         second_type    second; // 第二个数据
+    /**
+     * @name copy
+     * @details 将 [first, last) 区间内元素全部拷贝到 [result, result + (last - first)) 内
+     * @return 返回 result + (last - first)
+     */
+
+    // input_iterator_tag 版本
+    template <class InputIterator, class OutputIterator>
+    OutputIterator
+    unchecked_copy_cat(InputIterator first, InputIterator last,
+                       OutputIterator result ,tstl::input_iterator_tag)
+    {
+        for (; first != last; ++first, ++result)
+        {
+            *result = *first;
+        }
+        return result;
+    }
+
+    // random_access_iterator_tag 版本
+    template <class RandomIterator, class OutputIterator>
+    OutputIterator
+    unchecked_copy_cat(RandomIterator first, RandomIterator last,
+                       OutputIterator result, tstl::random_access_iterator_tag)
+    {
+        for (auto n = last - first; n > 0; --n, ++first, ++result)
+        {
+            *result = *first;
+        }
+        return result;
+    }
+
+    template <class InputIterator, class OutputIterator>
+    OutputIterator
+    unchecked_copy(InputIterator first, InputIterator last, OutputIterator result)
+    {
+        return unchecked_copy_cat(first, last, result, iterator_category(first));
+    }
+
+    // 为 trivially_copy_assignable 类型提供特化版本
+    template <class Tp, class Up>
+    typename std::enable_if<
+            std::is_same<typename std::remove_const<Tp>::type, Up>::value &&
+            std::is_trivially_copy_assignable<Up>::value, Up*>::type
+    unchecked_copy(Tp* first, Tp* last, Up* result)
+    {
+        const size_t n = static_cast<size_t>(last - first);
+        if (n != 0)
+            std::memmove(result, first, n * sizeof(Up));
+        return result + n;
+    }
+
+    template <class InputIterator, class OutputIterator>
+    OutputIterator
+    copy(InputIterator first, InputIterator last, OutputIterator result)
+    {
+        return unchecked_copy(first, last, result);
+    }
+
+    /**
+     * copy_backward
+     * 将 [first, last) 区间内的元素复制到 [result - (last - first), result) 内
+     * 返回头地址
+     */
+
+    // unchecked_copy_backward_cat 的 bidirectional_iterator_tag 版本
+    template <class BidirectionalIter1, class BidirectionalIter2>
+    BidirectionalIter2
+    unchecked_copy_backward_cat(BidirectionalIter1 first, BidirectionalIter1 last,
+                                BidirectionalIter2 result, tstl::bidirectional_iterator_tag)
+    {
+        while (first != last)
+        {
+            *(--result) = *(--last);
+        }
+        return result;
+    }
+
+    // unchecked_copy_backward_cat 的 random_access_iterator_tag 版本
+    template <class BidirectionalIter1, class BidirectionalIter2>
+    BidirectionalIter2
+    unchecked_copy_backward_cat(BidirectionalIter1 first, BidirectionalIter1 last,
+                                BidirectionalIter2 result, tstl::random_access_iterator_tag)
+    {
+        for (auto n = last - first; n > 0; --n)
+            *(--result) = *(--last);
+        return result;
+    }
+
+    template <class BidirectionalIter1, class BidirectionalIter2>
+    BidirectionalIter2
+    unchecked_copy_backward(BidirectionalIter1 first, BidirectionalIter1 last,
+                                BidirectionalIter2 result)
+    {
+        return unchecked_copy_backward_cat(first, last, result, iterator_category(first));
+    }
+
+    // 为 trivially_copy_assignable 类型提供特化版本
+    template <class Tp, class Up>
+    typename std::enable_if<
+            std::is_same<typename std::remove_const<Tp>::type, Up>::value &&
+            std::is_trivially_copy_assignable<Up>::value, Up*>::type
+    unchecked_copy_forward(Tp* first, Tp* last, Up* result)
+    {
+        const auto n = static_cast<size_t>(last - first);
+        if (n != 0)
+        {
+            result -= n;
+            std::memmove(result, first, n * sizeof(Up));
+        }
+        return result;
+    }
+
+    template <class BidirectionalIter1, class BidirectionalIter2>
+    BidirectionalIter2
+    copy_forward(BidirectionalIter1 first, BidirectionalIter1 last, BidirectionalIter2 result)
+    {
+        return unchecked_copy_forward(first, last, result);
+    }
 
 
-         // 默认构造
-         template <class Other1 = T1, class Other2 = T2,
-                 typename = typename std::enable_if<
-                         std::is_default_constructible<Other1>::value &&
-                         std::is_default_constructible<Other2>::value, void>::type>
-                         constexpr pair()
-                         : first(), second()
-         {
-         }
 
-         // 该类型的可转化隐式构造
-         template <class U1 = T1, class U2 = T2,
-                 typename std::enable_if<
-                 std::is_copy_constructible<U1>::value &&
-                 std::is_copy_constructible<U2>::value &&
-                 std::is_convertible<const U1&, T1>::value &&
-                 std::is_convertible<const U2&, T2>::value, int>::type = 0>
-                         constexpr pair(const T1& a, const T2& b)
-                         : first(a), second(b)
-         {
-         }
-     };
 }
 
 
