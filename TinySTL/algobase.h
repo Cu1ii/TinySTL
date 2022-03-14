@@ -426,6 +426,86 @@ namespace tstl
     {
         fill_cat(first, last, value, iterator_category(first));
     }
+
+    /**
+     * lexicographical_compare
+     * 以字典序排序对两个序列进行比较, 当在某个位置发现第一组不相等元素是, 有下列几种情况:
+     * (1) 如果第一个序列的元素较小, 就返回 true, 否则返回 false
+     * (2) 如果到达 last1 时没有到达 last2, 则返回 true;
+     * (3) 如果到达 last2 时没有到达 last1, 则返回 false;
+     * (4) 如果同时到达 last1 和 last2 , 则返回 false
+     */
+     template <class InputIterator1, class InputIterator2>
+     bool lexicographical_compare(InputIterator1 first1, InputIterator1 last1,
+                                  InputIterator2 first2, InputIterator2 last2)
+    {
+         for (; first2 != last2 && first1 != last1; ++first1, ++first2)
+         {
+             if (*first1 < *first2)
+                 return true;
+             if (*first2 < *first1)
+                 return false;
+         }
+         return first1 == last1 && first2 != last2;
+    }
+
+    // 使用自定义 Compare 仿函数对象代替比较操作
+    template <class InputIterator1, class InputIterator2, class Compared>
+    bool lexicographical_compare(InputIterator1 first1, InputIterator1 last1,
+                                 InputIterator2 first2, InputIterator2 last2, Compared cmp)
+    {
+        for (; first2 != last2 && first1 != last1; ++first1, ++first2)
+        {
+            if (cmp(*first1, *first2))
+                return true;
+            if (cmp(*first2, *first1))
+                return false;
+        }
+        return first1 == last1 && first2 != last2;
+    }
+
+    // 针对 const unsigned char* 的特化版本
+    bool  lexicographical_compare(const unsigned char* first1,
+                                  const unsigned char* last1,
+                                  const unsigned char* first2,
+                                  const unsigned char* last2)
+    {
+        const size_t len1 = last1 - first1;
+        const size_t len2 = last2 - first2;
+        // 先对相同部分进行比较
+        const size_t result = std::memcmp(first1, first2, tstl::min(len1, len2));
+        // 如果相同, 就比较谁的长度更大
+        return result != 0 ? (result < 0) : (len1 < len2);
+    }
+
+    /**
+     * mismatch
+     * 平行比较两个序列, 找到第一处失陪的元素, 返回一对迭代器, 分别指向两个序列中失陪的元素
+     */
+     template <class InputIterator1, class InputIterator2>
+     tstl::pair<InputIterator1, InputIterator2>
+     mismatch(InputIterator1 first1, InputIterator1 last1, InputIterator2 first2)
+    {
+         for (; first1 != last1 && *first1 == *first2;)
+         {
+             ++first1,
+             ++first2;
+         }
+         return tstl::pair<InputIterator1, InputIterator2>(first1, first2);
+    }
+
+    // 提供自定义的 Compare 仿函数对象 cmp 代替比较操作
+    template <class InputIterator1, class InputIterator2, class Compare>
+    tstl::pair<InputIterator1, InputIterator2>
+    mismatch(InputIterator1 first1, InputIterator1 last1, InputIterator2 first2, Compare cmp)
+    {
+        for (; first1 != last1 && *first1 == *first2;)
+        {
+            ++first1,
+            ++first2;
+        }
+        return tstl::pair<InputIterator1, InputIterator2>(first1, first2);
+    }
 }
 
 
