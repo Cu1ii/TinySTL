@@ -10,4 +10,4 @@ add_executable(TinySTL main.cpp
                 TinySTL/algobase.h
                 TinySTL/functional.h
                 TinySTL/heap_algo.h
-                TinySTL/construct.h)
+                TinySTL/construct.h TinySTL/allocator.h)
