@@ -1,0 +1,150 @@
+//
+// Created by Cu1 on 2022/3/17.
+//
+
+#ifndef TINYSTL_UNINITIALIZED_H
+#define TINYSTL_UNINITIALIZED_H
+
+// 用于未初始化空间构造元素
+
+#include "algobase.h"
+#include "construct.h"
+#include "iterator.h"
+#include "type_traits.h"
+#include "util.h"
+
+namespace tstl
+{
+
+    /**
+     *  uninitialized_copy
+     *  把 [first, last) 上的内容复制到以 result 为起始处的空间, 返回复制结束的位置
+     */
+     template <class InputIter, class ForwardIter>
+     ForwardIter
+     unchecked_uninit_copy(InputIter first, InputIter last, ForwardIter result, std::true_type)
+    {
+         return tstl::copy(first, last, result);
+    }
+
+    template <class InputIter, class ForwardIter>
+    ForwardIter
+    unchecked_uninit_copy(InputIter first, InputIter last, ForwardIter result, std::false_type)
+    {
+        auto cur = result;
+        try
+        {
+            for (; first != last; ++first, ++cur)
+            {
+                tstl::construct(&*cur, *first);
+            }
+        }
+        catch (...)
+        {
+            for (; result != cur; --cur)
+            {
+                tstl::destroy(&*cur);
+            }
+        }
+        return cur;
+    }
+
+    template <class InputIter, class ForwardIter>
+    ForwardIter
+    uninitialized_copy(InputIter first, InputIter last, ForwardIter result)
+    {
+        return tstl::unchecked_uninit_copy(first, last, result,
+                                           std::is_trivially_copy_assignable<
+                                           typename iterator_traits<ForwardIter>::
+                                           value_type>P{});
+    }
+
+    /**
+     * uninitialized_copy_n
+     * 把 [first, first + n) 上的内容复制到以 result 为起始处的空间, 返回复制结束的位置
+     */
+     template <class InputIter, class Size, class ForwardIter>
+     ForwardIter
+     unchecked_uninit_copy_n(InputIter first, Size n, ForwardIter result, std::true_type)
+    {
+         return tstl::copy_n(first, n, result).second;
+    }
+
+    template <class InputIter, class Size, class ForwardIter>
+    ForwardIter
+    unchecked_uninit_copy_n(InputIter first, Size n, ForwardIter result, std::false_type)
+    {
+        auto cur = result;
+        try
+        {
+            for (; n > 0; --n, ++cur, ++first)
+            {
+                tstl::construct(&*cur, *first);
+            }
+        }
+        catch (...)
+        {
+            for (; result != cur;  --cur)
+            {
+                tstl::destroy(&*cur);
+            }
+        }
+        return cur;
+    }
+
+    template <class InputIter, class Size, class ForwardIter>
+    ForwardIter
+    uninitialized_copy_n(InputIter first, Size n, ForwardIter result)
+    {
+        return tstl::unchecked_uninit_copy_n(first, n, result,
+                                             std::is_trivially_copy_assignable<
+                                             typename iterator_traits<InputIter>::
+                                             value_type>{});
+    }
+
+    /**
+     * uninitialized_fill
+     * 在 [first, last) 区间内填充元素
+     */
+     template <class ForwardIter, class T>
+     void
+     unchecked_uninit_fill(ForwardIter first, ForwardIter last, const T& value, std::true_type)
+    {
+         tstl::fill(first, last, value);
+    }
+
+    template <class ForwardIter, class T>
+    void
+    unchecked_uninit_fill(ForwardIter first, ForwardIter last, const T& value, std::false_type)
+    {
+        auto cur = first;
+        try
+        {
+            for (; cur != last; ++cur, ++first)
+            {
+                tstl::construct(&*cur, *first);
+            }
+        }
+        catch (...)
+        {
+            for (; first != cur; ++first)
+            {
+                tstl::destroy(&*first);
+            }
+        }
+    }
+
+    template <class ForwardIter, class T>
+    void
+    uninitialized_fill(ForwardIter first, ForwardIter last, const T& value)
+    {
+        tstl::unchecked_uninit_fill(first, last, value,
+                                    std::is_trivially_copy_assignable<
+                                    typename iterator_traits<ForwardIter>::
+                                    value_type>{});
+    }
+
+
+} // namespace tstl
+
+#endif //TINYSTL_UNINITIALIZED_H
