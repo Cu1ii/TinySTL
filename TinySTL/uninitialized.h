@@ -144,7 +144,6 @@ namespace tstl
                                     value_type>{});
     }
 
-
 } // namespace tstl
 
 #endif //TINYSTL_UNINITIALIZED_H
