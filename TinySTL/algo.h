@@ -140,8 +140,7 @@ namespace tstl
     template <class ForwardIter1, class ForwardIter2>
     ForwardIter1
     search(ForwardIter1 first1, ForwardIter1 last1,
-           ForwardIter2 first2, ForwardIter2 last2)
-    {
+           ForwardIter2 first2, ForwardIter2 last2) {
         auto d1 = tstl::distance(first1, last1);
         auto d2 = tstl::distance(first2, last2);
 
@@ -149,19 +148,14 @@ namespace tstl
             return last1;
         auto current1 = first1;
         auto current2 = first2;
-        while (current2 != last2)
-        {
-            if (*current1 == *current2)
-            {
+        while (current2 != last2) {
+            if (*current1 == *current2) {
                 ++current1;
                 ++current2;
-            }
-            else
-            {
+            } else {
                 if (d1 == d2)
                     return last1;
-                else
-                {
+                else {
                     current1 = ++first1;
                     current2 = ++first2;
                     --d1;
@@ -170,6 +164,7 @@ namespace tstl
         }
         return --d1;
     }
+
 }
 
 #endif //TINYSTL_ALGO_H
