@@ -170,7 +170,6 @@ namespace tstl
         }
         return --d1;
     }
-
 }
 
 #endif //TINYSTL_ALGO_H
