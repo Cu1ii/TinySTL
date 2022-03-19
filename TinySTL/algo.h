@@ -133,6 +133,43 @@ namespace tstl
         return first;
     }
 
+    /*************************************************************************************/
+    // search
+    // [first1, last1) 中查找 [first2, last2) 的首次出现点
+    /************************************************************************************/
+    template <class ForwardIter1, class ForwardIter2>
+    ForwardIter1
+    search(ForwardIter1 first1, ForwardIter1 last1,
+           ForwardIter2 first2, ForwardIter2 last2)
+    {
+        auto d1 = tstl::distance(first1, last1);
+        auto d2 = tstl::distance(first2, last2);
+
+        if (d1 < d2)
+            return last1;
+        auto current1 = first1;
+        auto current2 = first2;
+        while (current2 != last2)
+        {
+            if (*current1 == *current2)
+            {
+                ++current1;
+                ++current2;
+            }
+            else
+            {
+                if (d1 == d2)
+                    return last1;
+                else
+                {
+                    current1 = ++first1;
+                    current2 = ++first2;
+                    --d1;
+                }
+            }
+        }
+        return --d1;
+    }
 
 }
 

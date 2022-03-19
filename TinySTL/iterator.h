@@ -175,7 +175,7 @@ namespace tstl
 
     template <class InputIterator>
     typename iterator_traits<InputIterator>::difference_type
-    distance_dispatch(InputIterator first, InputIterator last)
+    distance(InputIterator first, InputIterator last)
     {
         return distance_dispatch(first, last, iterator_category(first));
     }
