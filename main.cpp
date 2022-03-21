@@ -1,9 +1,28 @@
-//
-// Created by Cu1 on 2022/3/21.
-//
-#include "iostream"
+#ifdef _MSC_VER
+#define _SCL_SECURE_NO_WARNINGS
+#endif
+
+#if defined(_MSC_VER) && defined(_DEBUG)
+#define _CRTDBG_MAP_ALLOC 
+#include <stdlib.h>
+#include <crtdbg.h>
+#endif // check memory leaks
+
+#include "Test/list_test.h"
+
 
 int main()
 {
-    return 0;
+    using namespace mystl::test;
+
+    std::cout.sync_with_stdio(false);
+
+    RUN_ALL_TESTS();
+
+    list_test::list_test();
+
+#if defined(_MSC_VER) && defined(_DEBUG)
+    _CrtDumpMemoryLeaks();
+#endif // check memory leaks
+
 }
