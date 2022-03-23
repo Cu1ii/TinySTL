@@ -9,7 +9,7 @@
 #endif // check memory leaks
 
 #include "Test/list_test.h"
-
+#include "Test/stack_test.h"
 
 int main()
 {
@@ -20,6 +20,7 @@ int main()
     RUN_ALL_TESTS();
 
     list_test::list_test();
+    stack_test::stack_test();
 
 #if defined(_MSC_VER) && defined(_DEBUG)
     _CrtDumpMemoryLeaks();
