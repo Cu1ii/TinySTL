@@ -10,6 +10,7 @@
 
 #include "Test/list_test.h"
 #include "Test/stack_test.h"
+#include "Test/vector_test.h"
 
 int main()
 {
@@ -21,6 +22,7 @@ int main()
 
     list_test::list_test();
     stack_test::stack_test();
+    vector_test::vector_test();
 
 #if defined(_MSC_VER) && defined(_DEBUG)
     _CrtDumpMemoryLeaks();
