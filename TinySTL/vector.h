@@ -10,6 +10,7 @@
 #include "iterator.h"
 #include "util.h"
 #include "exceptdef.h"
+#include <algorithm>
 
 namespace mystl
 {
@@ -121,7 +122,7 @@ namespace mystl
         const_reverse_iterator  rbegin()    const noexcept
         { return reverse_iterator(end()); }
         reverse_iterator        rend()            noexcept
-        { return const_reverse_iterator(begin());}
+        { return reverse_iterator(begin());}
         const_reverse_iterator  rend()      const noexcept
         { return const_reverse_iterator(begin());}
 
@@ -287,7 +288,7 @@ namespace mystl
         void swap(vector<T>& other) noexcept;
         void clear();
         //TODO 增加 mystl::reverse
-        void reverse() { reverse(begin(), end()); }
+        void reverse() { std::reverse(begin(), end()); }
         void resize(size_type new_size) { return resize(new_size, T()); }
         void resize(size_type new_size, const T& value);
     };
@@ -352,7 +353,7 @@ namespace mystl
         const size_type init_size = mystl::max(static_cast<size_type>(16),
                                                static_cast<size_type>(last - first));
         space_initialize(static_cast<size_type>(last - first), init_size);
-        mystl::uninitialized_fill_n(first, last, start);
+        mystl::uninitialized_copy(first, last, start);
     }
 
     template <class T>
@@ -369,14 +370,14 @@ namespace mystl
             }
             else if (size() >= len)
             {
-                auto i = mystl::copy((iterator)rhs.begin(), (iterator)rhs.end(), begin());
+                auto i = mystl::copy(rhs.begin(), rhs.end(), begin());
                 data_allocator::destroy(i, end());
                 finish = start + len;
             }
             else
             {
-                mystl::copy(rhs.begin(), rhs.begin() + size(), begin());
-                mystl::uninitialized_copy(rhs.begin() + size(), rhs.end(), end());
+                mystl::copy(rhs.begin(), rhs.begin() + size(), start);
+                mystl::uninitialized_copy(rhs.begin() + size(), rhs.end(), finish);
                 end_of_storage = finish = start + len;
             }
             return *this;
@@ -597,16 +598,16 @@ namespace mystl
                 {
                     mystl::uninitialized_copy(finish - n, finish, finish);
                     finish += n;
-                    mystl::copy_backward((iterator)pos, (iterator)(old_finish - n), iterator(old_finish));
-                    mystl::fill(pos, pos + n, value_copy);
+                    mystl::copy_backward((iterator)pos, (iterator)(old_finish - n), old_finish);
+                    mystl::fill((iterator)pos, (iterator)pos + n, value_copy);
                 }
                 else
                 {
                     mystl::uninitialized_fill_n(finish, n - elems_after, value_copy);
                     finish += n - elems_after;
-                    mystl::uninitialized_copy((iterator)pos, (iterator)old_finish, (iterator)finish);
+                    mystl::uninitialized_copy((iterator)pos, old_finish, finish);
                     finish += elems_after;
-                    mystl::fill((iterator)pos, (iterator)old_finish, value_copy);
+                    mystl::fill((iterator)pos, old_finish, value_copy);
                 }
             }
             else
@@ -642,7 +643,7 @@ namespace mystl
         if (first != last)
         {
             size_type n = 0;
-            n = mystl::distance((iterator)first, (iterator)last);
+            n = mystl::distance(first, last);
             if (static_cast<size_type>(end_of_storage - finish) >= n)
             {
                 auto elems_after = finish - position;
@@ -651,8 +652,8 @@ namespace mystl
                 {
                     mystl::uninitialized_copy(finish - n, finish, finish);
                     finish += n;
-                    copy_backward((iterator)position, (iterator)old_finish - n, (iterator)old_finish);
-                    copy(first, last, position);
+                    mystl::copy_backward((iterator)position, (iterator)old_finish - n, old_finish);
+                    mystl::copy(first, last, (iterator)position);
                 }
                 else
                 {
@@ -662,7 +663,7 @@ namespace mystl
                     finish += n - elems_after;
                     mystl::uninitialized_copy((iterator)position, (iterator)old_finish, (iterator)finish);
                     finish += elems_after;
-                    mystl::copy(first, mid, position);
+                    mystl::copy(first, mid, (iterator)position);
                 }
             }
             else

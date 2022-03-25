@@ -20,8 +20,6 @@ int main()
 
     RUN_ALL_TESTS();
 
-    list_test::list_test();
-    stack_test::stack_test();
     vector_test::vector_test();
 
 #if defined(_MSC_VER) && defined(_DEBUG)
