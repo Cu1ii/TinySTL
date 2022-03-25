@@ -32,7 +32,7 @@ namespace mystl
                 mystl::vector<int> v6(std::move(v2));
                 mystl::vector<int> v7{ 1,2,3,4,5,6,7,8,9 };
                 mystl::vector<int> v8, v9, v10;
-                //v8 = v3;
+                v8 = v3;
                 v9 = std::move(v3);
                 v10 = { 1,2,3,4,5,6,7,8,9 };
                 FUN_AFTER(v1, v1.assign(8, 8));

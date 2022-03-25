@@ -14,7 +14,6 @@
 
 namespace mystl
 {
-
     // 模板类 vector
     // 模板参数 T 为数据类型
     template <class T>
@@ -308,7 +307,7 @@ namespace mystl
         try
         {
             start = data_allocator::allocate(16);
-            start = finish;
+            finish = start;
             end_of_storage = start + 16;
         }
         catch (...)
