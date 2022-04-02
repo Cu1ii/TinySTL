@@ -211,20 +211,20 @@ namespace mystl
             mystl::make_heap(c.begin(), c.end(), comp);
         }
 
-        priority_queue(const priority_queue<T, Sequence, Compare>& other)
+        priority_queue(const priority_queue<T>& other)
             : c(other.c), comp(other.comp)
         {
             mystl::make_heap(c.begin(), c.end(), comp);
         }
 
-        priority_queue(priority_queue<T, Sequence, Compare>&& other)
+        priority_queue(priority_queue<T>&& other)
             : c(mystl::move(other.c)), comp(other.comp)
         {
             mystl::make_heap(c.begin(), c.end(), comp);
         }
 
-        priority_queue<T, Sequence, Compare>&
-                operator=(const priority_queue<T, Sequence, Compare>& rhs)
+        priority_queue<T>&
+                operator=(const priority_queue<T>& rhs)
         {
             c = rhs.c;
             comp = rhs.comp;
@@ -232,8 +232,7 @@ namespace mystl
             return *this;
         }
 
-        priority_queue<T, Sequence, Compare>&
-                operator=(priority_queue<T, Sequence, Compare>&& rhs)
+        priority_queue<T>& operator=(priority_queue<T>&& rhs)
         {
             c = mystl::move(rhs.c);
             comp = rhs.comp;
@@ -241,8 +240,7 @@ namespace mystl
             return *this;
         }
 
-        priority_queue<T, Sequence, Compare>&
-                operator=(std::initializer_list<T> ilist)
+        priority_queue<T>& operator=(std::initializer_list<T> ilist)
         {
             c = ilist;
             comp = value_compare();
@@ -282,9 +280,8 @@ namespace mystl
             while (!empty()) pop();
         }
 
-        void swap(priority_queue<T, Sequence, Compare>& rhs)
-                                                noexcept(noexcept(mystl::swap(c, rhs.c)) &&
-                                                noexcept(mystl::swap(comp, rhs.comp)))
+        void swap(priority_queue<T>& rhs)  noexcept(noexcept(mystl::swap(c, rhs.c)) &&
+                                                    noexcept(mystl::swap(comp, rhs.comp)))
         {
             mystl::swap(c, rhs.c);
             mystl::swap(comp, rhs.comp);
@@ -292,16 +289,15 @@ namespace mystl
 
     public:
 
-        bool operator==(const priority_queue<T, Sequence, Compare>& rhs) const
+        bool operator==(const priority_queue<T>& rhs) const
         { return this->c == rhs.c; }
 
-        bool operator!=(const priority_queue<T, Sequence, Compare>& rhs)
+        bool operator!=(const priority_queue<T>& rhs)
         { return this->c < rhs.c; }
     };
 
     template <class T, class Sequence, class Compare>
-    void swap(priority_queue<T, Sequence, Compare>& lhs,
-              priority_queue<T, Sequence, Compare>& rhs)
+    void swap(priority_queue<T>& lhs, priority_queue<T>& rhs)
               noexcept(noexcept(lhs.swap(rhs)))
     {
         lhs.swap(rhs);
