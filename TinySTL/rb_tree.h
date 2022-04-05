@@ -60,6 +60,12 @@ namespace mystl
 
         base_ptr node;
 
+
+        rb_tree_base_iterator() = default;
+        rb_tree_base_iterator(base_ptr x) : node(x)
+        {
+        }
+
         void increment()
         {
             if (nullptr != node->right)
@@ -105,8 +111,8 @@ namespace mystl
             }
         }
 
-        bool operator==(const rb_tree_iterator_base& rhs) { return node == rhs.node; }
-        bool operator!=(const rb_tree_iterator_base& rhs) { return node != rhs.node; }
+        bool operator==(const rb_tree_base_iterator& rhs) { return node == rhs.node; }
+        bool operator!=(const rb_tree_base_iterator& rhs) { return node != rhs.node; }
 
     };
 
@@ -123,25 +129,27 @@ namespace mystl
 
         rb_tree_iterator() = default;
         rb_tree_iterator(link_type x)
-            : node(x)
+            : rb_tree_base_iterator(x)
         {
         }
         rb_tree_iterator(const iterator& it)
-            : node(it.node)
+            : rb_tree_base_iterator(it.node)
         {
         }
 
         reference operator*()   const { return link_type(node)->value_field; }
-        pointer   operator->)() const { return &(operator*()); }
+        pointer   operator->() const { return &(operator*()); }
 
-        iterator& operator++() { increment(); return *this; }
+        // 由于 set 传入的 iterator 是 const_iterator 类型, 所以会出错 152 行同理
+        iterator& operator++() { increment(); return (iterator&)*this; }
         iterator operator++(int)
         {
             iterator tmp = *this;
             increment(); 
             return tmp;
         }
-        iterator& operator--() { decrement(); return *this;}
+
+        iterator& operator--() { decrement(); return (iterator&)*this;}
         iterator  operator--(int)
         {
             iterator tmp = *this;
@@ -307,7 +315,7 @@ namespace mystl
 
     inline rb_tree_node_base*
     rb_tree_rebalance_for_erase(rb_tree_node_base* z,
-                                rb_tree_node_base* root,
+                                rb_tree_node_base*& root,
                                 rb_tree_node_base*& leftmost,
                                 rb_tree_node_base*& rightmost)
     {
@@ -396,7 +404,7 @@ namespace mystl
                     // 如果第一步执行了, 那么就满足 w 节点是黑色
                     // 反之, 则说明 w 本来就是黑色, 所以只需要判断子节点符不符合条件即可
                     if ((nullptr == w->left || w->left->color == rb_tree_black) &&
-                         nullptr == w->right || w->right->color == rb_tree_black)
+                         (nullptr == w->right || w->right->color == rb_tree_black))
                     {
                         w->color = rb_tree_red;
                         x = x_parent;
@@ -460,18 +468,17 @@ namespace mystl
     template <class Key, class Value, class KeyOfValue, class Compare>
     class rb_tree
     {
-    protected:
+    public:
         typedef rb_tree_color_type                      color_type;
         typedef rb_tree_node_base*                      base_ptr;
         typedef rb_tree_node<Value>                     rb_tree_node;
 
 
-        typedef mystl::allocator<T>                     allocator_type;
-        typedef mystl::allocator<T>                     data_allocator;
+        typedef mystl::allocator<Value>                     allocator_type;
+        typedef mystl::allocator<Value>                     data_allocator;
         typedef mystl::allocator<rb_tree_node_base>     base_allocator;
         typedef mystl::allocator<rb_tree_node>          node_allocator;
 
-    public:
         typedef Key                                      key_type;
         typedef Value                                    value_type;
         typedef rb_tree_node*                            link_type;
@@ -548,33 +555,35 @@ namespace mystl
     protected:
         size_type node_count;
         link_type header;
-        Compare key_compare;
+        Compare   key_compare;
 
-        link_type& root()       const { return static_cast<link_type&>(header->parent); }
-        link_type& leftmost()   const { return static_cast<link_type&>(header->left); }
-        link_type& rightmost()  const { return static_cast<link_type&>(header->right); }
+        link_type& root()       const { return (link_type&)(header->parent); }
+        link_type& leftmost()   const { return (link_type&)(header->left); }
+        link_type& rightmost()  const { return (link_type&)(header->right); }
 
-        static link_type& left(link_type x) { return static_cast<link_type&>(x->left); }
-        static link_type& right(link_type x) { return static_cast<link_type&>(x->right);; }
-        static link_type& parent(link_type x) { return static_cast<link_type&>(x->parent); }
-        static reference  value(base_ptr x) { return (static_cast<link_type>(x))->value_field; }
-        static const Key& key(base_ptr x) const { return KeyOfValue()(value(link_type(x))); }
-        static color_type& color(base_ptr x) { return (color_type&)(link_type(x)->color); }
+        static link_type& left(link_type x)   { return (link_type&)(x->left); }
+        static link_type& right(link_type x)  { return (link_type&)(x->right);; }
+        static link_type& parent(link_type x) { return (link_type&)(x->parent); }
+        static reference  value(base_ptr x)   { return ((link_type&)x)->value_field; }
+        static const Key& key(base_ptr x)     { return KeyOfValue()(value(link_type(x))); }
+        static color_type& color(base_ptr x)  { return (color_type&)(link_type(x)->color); }
+        static link_type  change_link_type(base_ptr x)
+        { return (link_type)(x); }
 
         static link_type minimum(link_type x)
         {
-            return static_cast<link_type>(rb_tree_node_base::minimum(x));
+            return change_link_type(rb_tree_node_base::minimum(x));
         }
 
-        static link_type maximun(link_type x)
+        static link_type maximum(link_type x)
         {
-            return static_cast<link_type>(rb_tree_node_base::maximum(x));
+            return change_link_type(rb_tree_node_base::maximum(x));
         }
 
         void rb_tree_init()
         {
             header = get_node();
-            header->color = rb_tree_red;
+            color(header) = rb_tree_red;
             root() = nullptr;
             leftmost() = header;
             rightmost() = header;
@@ -599,7 +608,7 @@ namespace mystl
             {
                 root() = __copy(other.root(), header);
                 leftmost() = rb_tree::minimum(root());
-                rightmost() = rb_tree::maximun(root());
+                rightmost() = rb_tree::maximum(root());
             }
         }
         rb_tree(rb_tree<Key, Value, KeyOfValue, Compare>&& other) noexcept
@@ -665,7 +674,6 @@ namespace mystl
         { return rend(); }
 
         // 容器相关操作
-        Compare     key_compare() const          { return key_compare; }
         bool        empty()       const noexcept { return node_count == 0;}
         size_type   size()        const noexcept { return node_count; }
         size_type   max_size()    const noexcept { return static_cast<size_type>(-1); }
@@ -693,7 +701,7 @@ namespace mystl
         template<class ...Args>
         iterator emplace_multi_use_hint(iterator hint, Args&& ...args);
 
-        template<class ...Args>
+        template <class ...Args>
         iterator emplace_unique_use_hint(iterator hint, Args&& ...args);
 
         // insert
@@ -705,12 +713,12 @@ namespace mystl
             return emplace_multi(mystl::move(value));
         }
 
-        iterator insert_multi_use_hint(iterator hint, const value_type& value)
+        iterator insert_multi(iterator hint, const value_type& value)
         {
             return emplace_multi_use_hint(hint, value);
         }
 
-        iterator insert_multi_use_hint(iterator hint, value_type&& value)
+        iterator insert_multi(iterator hint, value_type&& value)
         {
             return emplace_multi_use_hint(hint, mystl::move(value));
         }
@@ -731,6 +739,18 @@ namespace mystl
         {
             emplace_unique(mystl::move(value));
         }
+
+        iterator  insert_unique(iterator hint, const value_type& value)
+        {
+            return emplace_unique_use_hint(hint, value);
+        }
+
+        iterator  insert_unique(iterator hint, value_type&& value)
+        {
+            return emplace_unique_use_hint(hint, mystl::move(value));
+        }
+
+
 
         template <class InputIter>
         void    insert_unique(InputIter first, InputIter last)
@@ -776,7 +796,7 @@ namespace mystl
 
         iterator upper_bound(const key_type& key);
 
-        const_iterator upper_bound(const key_type& key);
+        const_iterator upper_bound(const key_type& key) const;
 
 
         mystl::pair<iterator, iterator>
@@ -838,7 +858,7 @@ namespace mystl
     rb_tree<Key, Value, KeyOfValue, Compare>::
     emplace_multi(Args&& ...args)
     {
-        THROW_LENGTH_ERROR_IF(node_count_ > max_size() - 1,
+        THROW_LENGTH_ERROR_IF(node_count > max_size() - 1,
                               "rb_tree<Key, Value, KeyOfValue, Compare>'s size too big");
         link_type pos = create_node(mystl::forward<Args>(args)...);
         auto res = get_insert_multi_pos(KeyOfValue()(pos->value_field));
@@ -851,8 +871,8 @@ namespace mystl
     rb_tree<Key, Value, KeyOfValue, Compare>::
     emplace_unique(Args&& ...args)
     {
-        THROW_LENGTH_ERROR_IF(node_count_ > max_size() - 1,
-                              "rb_tree<T, Comp>'s size too big");
+        THROW_LENGTH_ERROR_IF(node_count > max_size() - 1,
+                              "rb_tree<Key, Value, KeyOfValue, Compare>'s size too big");
         link_type pos = create_node(mystl::forward<Args>(args)...);
         auto res = get_insert_unique_pos(KeyOfValue()(pos->value_field));
         if (res.second)
@@ -869,7 +889,7 @@ namespace mystl
     rb_tree<Key, Value, KeyOfValue, Compare>::
     emplace_multi_use_hint(iterator hint, Args&& ...args)
     {
-        THROW_LENGTH_ERROR_IF(node_count_ > max_size() - 1,
+        THROW_LENGTH_ERROR_IF(node_count > max_size() - 1,
                               "rb_tree<Key, Value, KeyOfValue, Compare>'s size too big");
         link_type pos = create_node(mystl::forward<Args>(args)...);
         if (0 == node_count)
@@ -882,7 +902,7 @@ namespace mystl
             // 处于 begin()
             if (key_compare(key, KeyOfValue()(*hint)))
             {
-                return insert_node_at(hint.node, pos, true);
+                return insert_node_at((link_type)hint.node, pos, true);
             }
             else
             {
@@ -913,7 +933,7 @@ namespace mystl
     rb_tree<Key, Value, KeyOfValue, Compare>::
     emplace_unique_use_hint(iterator hint, Args&& ...args)
     {
-        THROW_LENGTH_ERROR_IF(node_count_ > max_size() - 1,
+        THROW_LENGTH_ERROR_IF(node_count > max_size() - 1,
                               "rb_tree<Key, Value, KeyOfValue, Compare>'s size too big");
         link_type pos = create_node(mystl::forward<Args>(args)...);
         if (0 == node_count)
@@ -926,7 +946,7 @@ namespace mystl
             // 处于 begin()
             if (key_compare(key, KeyOfValue()(*hint)))
             {
-                return insert_node_at(hint.node, pos, true);
+                return insert_node_at((link_type)hint.node, pos, true);
             }
             else
             {
@@ -943,13 +963,13 @@ namespace mystl
         else if (hint == end())
         {
             // 位于 end() 处
-            if (!key_compare(key, KeyOfValue()(rightmost()->value_field)))
+            if (key_compare(KeyOfValue()(rightmost()->value_field), key))
             {
                 return insert_node_at(rightmost(), pos, false);
             }
             else
             {
-                auto p = get_insert_multi_pos(key);
+                auto p = get_insert_unique_pos(key);
                 if (!p.second)
                 {
                     destroy_node(pos);
@@ -966,10 +986,10 @@ namespace mystl
     rb_tree<Key, Value, KeyOfValue, Compare>::
     insert_multi(const value_type& value)
     {
-        THROW_LENGTH_ERROR_IF(node_count_ > max_size() - 1,
+        THROW_LENGTH_ERROR_IF(node_count > max_size() - 1,
                               "rb_tree<Key, Value, KeyOfValue, Compare>'s size too big");
         auto res = get_insert_multi_pos(KeyOfValue()(value));
-        return insert_value_at(res.first, valuem, res.second);
+        return insert_value_at(res.first, value, res.second);
     }
 
 
@@ -979,14 +999,14 @@ namespace mystl
     rb_tree<Key, Value, KeyOfValue, Compare>::
     insert_unique(const value_type& value)
     {
-        THROW_LENGTH_ERROR_IF(node_count_ > max_size() - 1,
+        THROW_LENGTH_ERROR_IF(node_count > max_size() - 1,
                               "rb_tree<Key, Value, KeyOfValue, Compare>'s size too big");
         auto res = get_insert_unique_pos(KeyOfValue()(value));
         if (res.second)
         {
             return mystl::make_pair(insert_value_at(res.first.first, value, res.first.second), true);
         }
-        return mystl::make_pair(res.first, res.first, false);
+        return mystl::make_pair(res.first.first, false);
     }
 
     template <class Key, class Value, class KeyOfValue, class Compare>
@@ -994,11 +1014,11 @@ namespace mystl
     rb_tree<Key, Value, KeyOfValue, Compare>::
     erase(iterator hint)
     {
-        auto node = static_cast<link_type>(hint.node);
+        auto node = (link_type)(hint.node);
         iterator nex(node);
         ++nex;
 
-        rb_tree_rebalance_for_erase(hint.node, root(), leftmost(), rightmost());
+        rb_tree_rebalance_for_erase(hint.node, header->parent, (base_ptr&)leftmost(), (base_ptr&)rightmost());
         destroy_node(node);
         --node_count;
         return nex;
@@ -1070,10 +1090,10 @@ namespace mystl
         {
             if (!key_compare(KeyOfValue()(x->value_field), key))
             {
-                y = x, x = x->left;
+                y = x, x = left(x);
             }
             else
-                x = x->right;
+                x = right(x);
         }
         iterator j = iterator(y);
         return (j == end() || key_compare(key, KeyOfValue()(*j))) ? end() : j;
@@ -1092,10 +1112,10 @@ namespace mystl
         {
             if (!key_compare(KeyOfValue()(x->value_field), key))
             {
-                y = x, x = x->left;
+                y = x, x = left(x);
             }
             else
-                x = x->right;
+                x = right(x);
         }
         const_iterator j = const_iterator(y);
         return (j == end() || key_compare(key, KeyOfValue()(*j))) ? end() : j;
@@ -1112,9 +1132,9 @@ namespace mystl
         while (nullptr != x)
         {
             if (!key_compare(KeyOfValue()(x->value_field), key))
-                y = x, x = x->left;
+                y = x, x = left(x);
             else
-                x = x->right;
+                x = right(x);
         }
         return iterator(y);
     }
@@ -1129,9 +1149,9 @@ namespace mystl
         while (nullptr != x)
         {
             if (!key_compare(KeyOfValue()(x->value_field), key))
-                y = x, x = x->left;
+                y = x, x = left(x);
             else
-                x = x->right;
+                x = right(x);
         }
         return const_iterator(y);
     }
@@ -1147,9 +1167,9 @@ namespace mystl
         while (x != nullptr)
         {
             if (key_compare(key, KeyOfValue()(x->value_field)))
-                y = x, x = x->left;
+                y = x, x = left(x);
             else
-                x = x->right;
+                x = right(x);
         }
         return iterator(y);
     }
@@ -1164,16 +1184,16 @@ namespace mystl
         while (x != nullptr)
         {
             if (key_compare(key, KeyOfValue()(x->value_field)))
-                y = x, x = x->left;
+                y = x, x = left(x);
             else
-                x = x->right;
+                x = right(x);
         }
         return const_iterator(y);
     }
 
     // get_insert_multi_pos
     template <class Key, class Value, class KeyOfValue, class Compare>
-    mystl::pair<rb_tree<Key, Value, KeyOfValue, Compare>::iterator, bool>
+    mystl::pair<typename rb_tree<Key, Value, KeyOfValue, Compare>::link_type, bool>
     rb_tree<Key, Value, KeyOfValue, Compare>::
     get_insert_multi_pos(const key_type& key)
     {
@@ -1184,14 +1204,14 @@ namespace mystl
         {
             y = x;
             add_to_left = key_compare(key, KeyOfValue()(x->value_field));
-            x = add_to_left ? x->left : x->right;
+            x = add_to_left ? left(x) : right(x);
         }
         return mystl::make_pair(y, add_to_left);
     }
 
     // get_insert_unique_pos
     template <class Key, class Value, class KeyOfValue, class Compare>
-    mystl::pair<mystl::pair<rb_tree<Key, Value, KeyOfValue, Compare>::link_type , bool>, bool>
+    mystl::pair<mystl::pair<typename rb_tree<Key, Value, KeyOfValue, Compare>::link_type, bool>, bool>
     rb_tree<Key, Value, KeyOfValue, Compare>::
     get_insert_unique_pos(const key_type& key)
     {
@@ -1202,7 +1222,7 @@ namespace mystl
         {
             y = x;
             add_to_left = key_compare(key, KeyOfValue()(x->value_field));
-            x = add_to_left ? x->left : x->right;
+            x = add_to_left ? left(x) : right(x);
         }
         iterator j = iterator(y);
         if (add_to_left)
@@ -1220,7 +1240,7 @@ namespace mystl
 
     // insert_value_at
     template <class Key, class Value, class KeyOfValue, class Compare>
-    rb_tree<Key, Value, KeyOfValue, Compare>::iterator
+    typename rb_tree<Key, Value, KeyOfValue, Compare>::iterator
     rb_tree<Key, Value, KeyOfValue, Compare>::
     insert_value_at(link_type x, const value_type& value, bool add_to_left)
     {
@@ -1244,13 +1264,13 @@ namespace mystl
             if (rightmost() == x)
                 rightmost() = node;
         }
-        rb_tree_reblance(node, root());
+        rb_tree_reblance(node, header->parent);
         ++node_count;
         return iterator(node);
     }
 
     template <class Key, class Value, class KeyOfValue, class Compare>
-    rb_tree<Key, Value, KeyOfValue, Compare>::iterator
+    typename rb_tree<Key, Value, KeyOfValue, Compare>::iterator
     rb_tree<Key, Value, KeyOfValue, Compare>::
     insert_node_at(link_type x, link_type node, bool add_to_left)
     {
@@ -1273,20 +1293,20 @@ namespace mystl
             if (rightmost() == x)
                 rightmost() = node;
         }
-        rb_tree_reblance(node, root());
+        rb_tree_reblance(node, header->parent);
         ++node_count;
         return iterator(node);
     }
 
     template <class Key, class Value, class KeyOfValue, class Compare>
-    rb_tree<Key, Value, KeyOfValue, Compare>::iterator
+    typename rb_tree<Key, Value, KeyOfValue, Compare>::iterator
     rb_tree<Key, Value, KeyOfValue, Compare>::
     insert_multi_use_hint(iterator hint, key_type key, link_type node)
     {
-        link_type np = hint.node;
+        link_type np = (link_type)hint.node;
         auto before = hint;
         --before;
-        link_type bnp = before.node;
+        link_type bnp = (link_type)before.node;
         if (!key_compare(key, KeyOfValue()(*before)) &&
             !key_compare(KeyOfValue()(*hint), key))
         {
@@ -1302,17 +1322,17 @@ namespace mystl
 
 
     template <class Key, class Value, class KeyOfValue, class Compare>
-    rb_tree<Key, Value, KeyOfValue, Compare>::iterator
+    typename rb_tree<Key, Value, KeyOfValue, Compare>::iterator
     rb_tree<Key, Value, KeyOfValue, Compare>::
     insert_unique_use_hint(iterator hint, key_type key, link_type node)
     {
-        link_type np = hint.node;
+        link_type np = (link_type)hint.node;
         auto before = hint;
         --before;
-        link_type bnp = before.node;
+        link_type bnp = (link_type)before.node;
 
-        if (key_compare(KeyOfValue(*before), key) &&
-            key_compare(key, KeyOfValue(*hint)))
+        if (key_compare(KeyOfValue()(*before), key) &&
+            key_compare(key, KeyOfValue()(*hint)))
         {
             // before < node < hint
             if (nullptr == bnp->right)
@@ -1326,7 +1346,7 @@ namespace mystl
             destroy_node(node);
             return pos.first.first;
         }
-        return insert_node_at(pos.first.first, node, pos.first.scond);
+        return insert_node_at(pos.first.first, node, pos.first.second);
     }
 
     template <class Key, class Value, class KeyOfValue, class Compare>
@@ -1338,18 +1358,18 @@ namespace mystl
         try
         {
             if(x->right)
-                top->right = __copy(x->right, top);
+                top->right = __copy(right(x), top);
             p = top;
-            x = x->left;
+            x = left(x);
             while (nullptr != x)
             {
                 link_type y = clone_type(x);
                 p->left = y;
                 y->parent = p;
                 if (x->right)
-                    y->right = __copy(x->right, y);
+                    y->right = __copy(right(x), y);
                 p = y;
-                x = x->left;
+                x = left(x);
             }
         }
         catch (...)
@@ -1366,8 +1386,8 @@ namespace mystl
     {
         while (nullptr != x)
         {
-            erase_since(x->right);
-            link_type y = x->left;
+            erase_since(right(x));
+            link_type y = left(x);
             destroy_node(x);
             x = y;
         }

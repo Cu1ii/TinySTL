@@ -12,6 +12,7 @@
 #include "Test/stack_test.h"
 #include "Test/vector_test.h"
 #include "Test/queue_test.h"
+#include "Test/set_test.h"
 
 int main()
 {
@@ -21,8 +22,8 @@ int main()
 
     RUN_ALL_TESTS();
 
-    mystl::test::queue_test::queue_test();
-    mystl::test::queue_test::priority_test();
+    //mystl::test::set_test::set_test();
+    mystl::test::set_test::multiset_test();
 
 #if defined(_MSC_VER) && defined(_DEBUG)
     _CrtDumpMemoryLeaks();
