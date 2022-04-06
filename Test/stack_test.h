@@ -14,20 +14,20 @@
 
 namespace mystl
 {
-    namespace test
-    {
-        namespace stack_test
-        {
+namespace test
+{
+namespace stack_test
+{
 
-            void stack_print(mystl::stack<int> s)
-            {
-                while (!s.empty())
-                {
-                    std::cout << " " << s.top();
-                    s.pop();
-                }
-                std::cout << std::endl;
-            }
+    void stack_print(mystl::stack<int> s)
+    {
+        while (!s.empty())
+        {
+            std::cout << " " << s.top();
+            s.pop();
+        }
+        std::cout << std::endl;
+    }
 
 // stack 的遍历输出
 #define STACK_COUT(s) do {                       \
@@ -102,6 +102,6 @@ namespace mystl
 
         } // namespace stack_test
     } // namespace test
-} // namespace mystl
+} // namespace stack_test
 
 #endif //TINYSTL_STACK_TEST_H

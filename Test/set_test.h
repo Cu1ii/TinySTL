@@ -1,5 +1,5 @@
-﻿#ifndef MYTINYSTL_SET_TEST_H_
-#define MYTINYSTL_SET_TEST_H_
+﻿#ifndef TINYSTL_SET_TEST_H_
+#define TINYSTL_SET_TEST_H_
 
 // set test : 测试 set, multiset 的接口与它们 insert 的性能
 
@@ -167,5 +167,5 @@ void multiset_test()
 } // namespace set_test
 } // namespace test
 } // namespace mystl
-#endif // !MYTINYSTL_SET_TEST_H_
+#endif // !TINYSTL_SET_TEST_H_
 

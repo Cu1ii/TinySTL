@@ -16,4 +16,4 @@ add_executable(
         TinySTL/set.h
         Extend/segtree.h
         Extend/internal_bit.hpp
-)
+        Test/segtree_test.h)

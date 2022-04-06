@@ -23,23 +23,21 @@ namespace extend
      * @tparam e 返回一个提供初始化元素 S 的函数 e()
      */
     template <class S, S (*op)(S, S), S (*e)()>
-    class segtree
+    struct segtree
     {
 
     public:
-        typedef typename S  node_type; // 节点要维护的值
-        typedef typename op merge;
-        typedef typename e  create_s;
+        typedef  S  node_type; // 节点要维护的值
 
         segtree() : segtree(0) {}
 
         explicit segtree(int n)
-            :segtree(mystl::vector<node_type>(n, e()))
+                :segtree(vector<node_type>(n, e()))
         {
         }
 
-        explicit segtree(const mystl::vector<node_type>& v)
-            :_n(int(v.size()))
+        explicit segtree(const vector<node_type>& v)
+                :_n(int(v.size()))
         {
             // 求 log2(n) 向上取整
             log = internal::ceil_pow2(_n);
@@ -47,13 +45,12 @@ namespace extend
             d = mystl::vector<node_type>(2 * size, e());
             for (int i = 0; i < _n; i++)
                 d[size + i] = v[i];
-            for (int i = size - 1; i >= 1; i++)
+            for (int i = size - 1; i >= 1; i--)
                 update(i);
         }
 
         void set(int p, node_type x)
         {
-            static_assert(0 <= p && p < _n, "the postition is out of range!");
             p += size;
             d[p] = x;
             for (int i = 1; i <= log; i++)
@@ -62,27 +59,24 @@ namespace extend
 
         node_type get(int p) const
         {
-            static_assert(0 <= p && p < _n, "the postition is out of range!");
             return d[p + size];
         }
 
         node_type prod(int l, int r) const
         {
-            static_assert(0 <= l && l <= r && r <= _n,
-                                            "the postition is out of range!");
             node_type sml = e(), smr = e();
             l += size, r += size;
 
             while (l < r)
             {
                 if (l & 1)
-                    sml = merge(sml, d[l++]);
+                    sml = op(sml, d[l++]);
                 if (r & 1)
-                    smr = merge(d[--r], smr);
+                    smr = op(d[--r], smr);
                 l = l >> 1;
                 r = r >> 1;
             }
-            return merge(sml, smr);
+            return op(sml, smr);
         }
 
         node_type all_prod() const { return d[1]; }
@@ -97,9 +91,6 @@ namespace extend
         template<class F>
         int max_right(int l, F f) const
         {
-            static_assert(0 <= l && l <= _n,
-                            "the postition is in of range!");
-            static_assert(f(e()), "the F(e()) satisfaction is true");
 
             if (l == _n)
                 return _n;
@@ -108,22 +99,22 @@ namespace extend
             do {
                 while (l % 2 == 0)
                     l = l >> 1;
-                if (!f(merge(sm, d[l])))
+                if (!f(op(sm, d[l])))
                 {
                     while (l < size)
                     {
                         l = l * 2;
-                        if (f(merge(sm, d[l])))
+                        if (f(op(sm, d[l])))
                         {
-                            sm = merge(sm, d[l]);
+                            sm = op(sm, d[l]);
                             l++;
                         }
                     }
                     return l - size;
                 }
-                sm = merge(sm, d[l]);
+                sm = op(sm, d[l]);
                 l++;
-            } while ((l & -l) != 1) ;
+            } while ((l & -l) != l) ;
             return _n;
         }
 
@@ -135,30 +126,27 @@ namespace extend
         template <class F>
         int min_left(int r, F f) const
         {
-            static_assert(0 <= l && l <= _n,
-                          "the postition is in of range!");
-            static_assert(f(e()), "the F(e()) satisfaction is true");
-            if (r == 0) return n;
+            if (r == 0) return _n;
             r = r + size;
             node_type sm = e();
             do {
                 r--;
                 while (r > 1 && (r % 2))
                     r = r >> 1;
-                if (!f(merge(d[r], sm)))
+                if (!f(op(d[r], sm)))
                 {
                     while (r < size)
                     {
                         r = (2 * r + 1);
-                        if (f(merge(d[r], sm)))
+                        if (f(op(d[r], sm)))
                         {
-                            sm = merge(d[r], sm);
+                            sm = op(d[r], sm);
                             r--;
                         }
                     }
                     return r + 1 - size;
                 }
-                sm = merge(d[r], sm);
+                sm = op(d[r], sm);
             } while ((r & -r) != r);
             return 0;
         }
@@ -167,9 +155,9 @@ namespace extend
     private:
         int left(int k)     const { return 2 * k; }
         int right(int k)    const { return 2 * k + 1; }
-        void update(int k) { d[k] = merge(d[left(k)], d[right(k)]); }
+        void update(int k) { d[k] = op(d[left(k)], d[right(k)]); }
 
-        mystl::vector<node_type> d;
+        vector<node_type> d;
         int _n, size, log;
 
     };

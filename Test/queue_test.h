@@ -1,5 +1,5 @@
-﻿#ifndef MYTINYSTL_QUEUE_TEST_H_
-#define MYTINYSTL_QUEUE_TEST_H_
+﻿#ifndef TINYSTL_QUEUE_TEST_H_
+#define TINYSTL_QUEUE_TEST_H_
 
 // queue test : 测试 queue, priority_queue 的接口和它们 push 的性能
 
@@ -182,5 +182,5 @@ void priority_test()
 } // namespace queue_test
 } // namespace test
 } // namespace mystl
-#endif // !MYTINYSTL_QUEUE_TEST_H_
+#endif // !TINYSTL_QUEUE_TEST_H_
 

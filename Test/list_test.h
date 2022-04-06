@@ -1,5 +1,5 @@
-﻿#ifndef MYTINYSTL_LIST_TEST_H_
-#define MYTINYSTL_LIST_TEST_H_
+﻿#ifndef TINYSTL_LIST_TEST_H_
+#define TINYSTL_LIST_TEST_H_
 
 // list test : 测试 list 的接口与 insert, sort 的性能
 
@@ -114,5 +114,5 @@ void list_test()
 } // namespace list_test
 } // namespace test
 } // namespace mystl
-#endif // !MYTINYSTL_LIST_TEST_H_
+#endif // !TINYSTL_LIST_TEST_H_
 
