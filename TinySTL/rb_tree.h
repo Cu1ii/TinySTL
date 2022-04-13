@@ -619,7 +619,8 @@ namespace mystl
             other.reset();
         }
 
-        rb_tree& operator=(const rb_tree<Key, Value, KeyOfValue, Compare>& rhs)
+        rb_tree<Key, Value, KeyOfValue, Compare>&
+                operator=(const rb_tree<Key, Value, KeyOfValue, Compare>& rhs)
         {
             if (this != &rhs)
             {
@@ -636,7 +637,8 @@ namespace mystl
             return *this;
         }
 
-        rb_tree& operator=(rb_tree<Key, Value, KeyOfValue, Compare>&& rhs)
+        rb_tree<Key, Value, KeyOfValue, Compare>
+                & operator=(rb_tree<Key, Value, KeyOfValue, Compare>&& rhs)
         {
             clear();
             header = mystl::move(rhs.header);
