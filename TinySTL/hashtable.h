@@ -241,8 +241,149 @@ namespace mystl
         return pos == last ? *(last - 1) : *pos;
     }
 
+    template <class Value, class Key, class HashFcn, class ExtractKey, class EqualKey>
+    class hashtable
+    {
+    public:
+        typedef Key                                                 key_type;
+        typedef Value                                               value_type;
+        typedef HashFcn                                             hasher;
+        typedef EqualKey                                            key_equal;
 
-}
+        typedef hashtable_node<Value>   node;
+        typedef mystl::allocator<Value>                             allocator_type;
+        typedef mystl::allocator<Value>                             data_allocator;
+        typedef mystl::allocator<node>                              node_allocator;
+
+        typedef typename allocator_type::pointer                    pointer;
+        typedef typename allocator_type::const_pointer              const_pointer;
+        typedef typename allocator_type::reference                  reference;
+        typedef typename allocator_type::const_reference            const_reference;
+        typedef typename allocator_type::size_type                  size_type;
+        typedef typename allocator_type::difference_type            difference_type;
+
+        typedef mystl::hashtable_iterator<Value, Key, HashFcn,
+                                            ExtractKey, EqualKey>   iterator;
+        typedef mystl::hashtable_const_iterator<Value, Key, HashFcn,
+                                            ExtractKey, EqualKey>   const_iterator;
+
+        friend struct
+                mystl::hashtable_iterator<Value, Key, HashFcn, ExtractKey, EqualKey>;
+        friend struct
+                mystl::hashtable_const_iterator<Value, Key, HashFcn, ExtractKey, EqualKey>;
+
+        hasher      hash_funct()        const { return hash; }
+        key_equal   key_eq()            const { return equals; }
+        allocator_type get_allocator()  const { return allocator_type(); }
+    private:
+
+        typedef mystl::vector<node*>    bucket_type;
+
+        bucket_type buckets;
+        size_type   num_elements;
+        hasher      hash;
+        key_equal   equals;
+        ExtractKey  get_key;
+
+    public:
+
+        explicit hashtable(size_type bucket_count,
+                           const HashFcn& hf = HashFcn(),
+                           const EqualKey& eql = EqualKey())
+            : hash(hf), equals(eql), get_key(ExtractKey()), num_elements(0)
+        {
+            // TODO
+            initialize_buckets(n);
+        }
+
+        template <class Iter, typename std::enable_if<
+                mystl::is_input_iterator<Iter>::value, int>::type = 0>
+        hashtable(Iter first, Iter last,
+                  size_type bucket_count,
+                  const HashFcn& hf = HashFcn(),
+                  const EqualKey& eql = EqualKey())
+            : get_key(ExtractKey), hash(hf), equals(eql), num_elements(mystl::distance(first, last))
+        {
+            // TODO
+            initialize_buckets(mystl::max(bucket_count, static_cast<size_type>(mystl::distance(first, last))));
+        }
+
+        hashtable(const hashtable& other)
+            : hash(other.hash), equals(other.equals), get_key(ExtractKey()), num_elements(0)
+        {
+            copy_from(other);
+        }
+
+        hashtable(hashtable&& other) noexcept
+            : get_key(other.get_key),
+              hash(other.hash),
+              equals(other.equals),
+              num_elements(other.num_elements)
+        {
+            buckets = mystl::move(other.buckets);
+            other.num_elements = 0;
+        }
+
+        hashtable& operator=(const hashtable& rhs)
+        {
+            if (this != &rhs)
+            {
+                // TODO
+                clear();
+                hash = rhs.hash;
+                equals = rhs.equals;
+                get_key = rhs.get_key;
+                //TODO
+                copy_from(rhs);
+            }
+            return *this;
+        }
+
+        hashtable& operator=(hashtable&& rhs) noexcept
+        {
+            if (this != &rhs)
+            {
+                // TODO
+                clear();
+                hash = rhs.hash;
+                equals = rhs.equals;
+                get_key = rhs.get_key;
+                num_elements = rhs.num_elements;
+                buckets = mystl::move(rhs.buckets);
+                rhs.num_elements = 0;
+            }
+        }
+
+        // TOOD
+        ~hashtable() { clear(); }
+
+    public:
+
+        iterator begin() noexcept
+        {
+            for (size_type n = 0; n < buckets.size(); ++n)
+                if (buckets[n])
+                    return iterator(buckets[n], this);
+            return end();
+        }
+        const_iterator begin() const noexcept
+        {
+            for (size_type n = 0; n < buckets.size(); ++n)
+                if (buckets[n])
+                    return const_iterator(buckets[n], this);
+            return end();
+        }
+
+        iterator end()                noexcept { return iterator(0, this); }
+        const_iterator end()    const noexcept { return const_iterator(0, this); }
+
+        const_iterator cbegin() const noexcept { return begin(); }
+        const_iterator cend()   const noexcept { return end(); }
+
+    };
+
+
+};
 
 
 
