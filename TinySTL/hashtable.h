@@ -380,12 +380,159 @@ namespace mystl
         const_iterator cbegin() const noexcept { return begin(); }
         const_iterator cend()   const noexcept { return end(); }
 
+    public:
+        bool empty()                 const noexcept { return num_elements == 0; }
+        bool size()                  const noexcept { return num_elements; }
+        size_type max_size()         const noexcept { return static_cast<size_type>(-1); }
+        size_type bucket_count()     const noexcept { return buckets.size(); }
+        size_type max_bucket_count() const noexcept
+        { return stl_prime_list[PRIME_NUM - 1]; }
+
+        size_type elems_in_bucket(size_type bucket) const
+        {
+            size_type result = 0;
+            for (auto cur = buckets[bucket]; cur != nullptr; cur = cur->next; )
+                ++result;
+            return result;
+        }
+
+        // TODO
+        template <class ...Args>
+        iterator emplace_multi(Args&& ...args);
+
+        // TODO
+        template <class ...Args>
+        mystl::pair<iterator, bool> emplace_unique(Args&& ...args);
+
+        // TODO
+        iterator insert_multi_noresize(const value_type& value);
+
+
+        mystl::pair<iterator, bool> insert_unique(value_type&& value)
+        { return emplace_unique(mystl::move(value));}
+
+        iterator insert_multi(value_type&& value)
+        { return emplace_multi(mystl::move(value)); }
+
+        mystl::pair<iterator, bool> insert_unique(const value_type& value)
+        {
+            resize(num_elements + 1);
+            return insert_unique_noresize(value);
+        }
+
+        iterator insert_multi(const value_type& value)
+        {
+            resize(num_elements + 1);
+            return insert_multi_noresize(value);
+        }
+
+        // TODO
+        mystl::pair<iterator, bool> insert_unique_noresize(const value_type& value);
+
+        // TODO
+        iterator insert_multi_noresize(const value_type& value);
+
+        template <class InputIter>
+        void insert_unique(InputIter first, InputIter last)
+        {
+            insert_unique(first, last, iterator_category(first));
+        }
+
+        template <class InputIter>
+        void insert_multi(InputIter first, InputIter last)
+        {
+            insert_multi(first, last, iterator_category(first));
+        }
+
+        template <class InputIter>
+        void insert_unique(InputIter first, InputIter last,
+                           input_iterator_tag)
+        {
+            for (; first != last; ++first)
+                insert_unique(*first);
+        }
+
+        template <class InputIter>
+        void insert_multi(InputIter first, InputIter last,
+                          input_iterator_tag)
+        {
+            for (; first != last; ++first)
+                insert_multi(*first);
+        }
+
+        template <class ForwardIterator>
+        void insert_unique(ForwardIterator first, ForwardIterator last,
+                           forward_iterator_tag)
+        {
+            size_type n = 0;
+            mystl::distance(first, last, n);
+            // TODO
+            resize(num_elements + n);
+            for (; n > 0; --n, ++first)
+                insert_unique_noresize(*first);
+        }
+
+        template <class ForwardIterator>
+        void insert_multi(ForwardIterator first, ForwardIterator last,
+                          forward_iterator_tag)
+        {
+            size_type n = 0;
+            mystl::distance(first, last, n);
+            resize(num_elements + n);
+            for (; n > 0; --n, ++first)
+                insert_multi_noresize(*first);
+        }
+
+        // TODO
+        reference find_or_insert(const value_type& value);
+
+        iterator find(const key_type& key)
+        {
+            auto n = bucket_num_key(key);
+            node* first;
+            for ( first = buckets[n];
+                  first && !equals(get_key(first->val), key);
+                  first = first->next)
+            {}
+            return iterator(first, this);
+        }
+
+        const_iterator find(const key_type& key) const
+        {
+            auto n = bucket_num_key(key);
+            node* first;
+            for ( first = buckets[n];
+                  first && !equals(get_key(first->val), key);
+                  first = first->next)
+            {}
+            return const_iterator(first, this);
+        }
+
+        size_type count(const key_type& key) const
+        {
+            const size_type bucket_num_key(key);
+            size_type result = 0;
+
+            for (const node* cur = buckets[n]; cur != nullptr; cur = cur->next)
+                if (equals(get_key(cur->val), key))
+                    ++result;
+            return result;
+        }
+
+        // TODO
+        pair<iterator, iterator> equal_range_unique(const key_type& key);
+        // TODO
+        pair<const iterator, const iterator> equal_range_unique(const key_type& key) const;
+
+        //TODO
+        pair<iterator, iterator> equal_range_multi(const key_type& key);
+        //TODO
+        pair<const_iterator, const_iterator> equal_range_multi(const key_type& key) const;
+
     };
 
 
 };
-
-
 
 
 #endif //TINYSTL_HASHTABLE_H
