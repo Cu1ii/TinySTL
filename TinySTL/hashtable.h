@@ -527,17 +527,11 @@ namespace mystl
             return result;
         }
 
-        // TODO
         pair<iterator, iterator> equal_range(const key_type& key);
-        // TODO
         pair<const iterator, const iterator> equal_range(const key_type& key) const;
 
-        // TODO
-        size_type erase_unique(const key_type& value);
-        //TODO
-        size_type erase_mulit(const key_type& value);
+        size_type erase(const key_type& key);
 
-        // TODO
         void erase(const iterator& it);
 
         // TODO
@@ -870,8 +864,240 @@ namespace mystl
         return mystl::make_pair(end(), end());
     }
 
+    template <class Value, class Key, class HashFcn, class ExtractKey, class EqualKey>
+    typename hashtable<Value, Key, HashFcn, ExtractKey, EqualKey>::size_type
+    hashtable<Value, Key, HashFcn, ExtractKey, EqualKey>::erase(const key_type& key)
+    {
+        const size_type n = bkt_num(key);
+        auto first = buckets[n];
+        size_type erased = 0;
+        if (first != nullptr)
+        {
+            node* cur = first;
+            node* next = cur->next;
+            while (next)
+            {
+                if (equals(get_key(next->value), key))
+                {
+                    cur->next = next->next;
+                    delete_node(next);
+                    next = cur->next;
+                    ++erased;
+                    --num_elements;
+                }
+                else
+                {
+                    cur = next;
+                    next = cur->next;
+                }
+            }
+            if (equals(get_key(first->value), key))
+            {
+                buckets[n] = first->next;
+                delete_node(first);
+                ++erased;
+                --num_elements;
+            }
+        }
+        return erased;
+    }
+
+    template <class Value, class Key, class HashFcn, class ExtractKey, class EqualKey>
+    void hashtable<Value, Key, HashFcn, ExtractKey, EqualKey>::erase(const iterator& it)
+    {
+        node* const p = it.cur;
+        if (p != nullptr)
+        {
+            const size_type n = bkt_num(p->value);
+            auto cur = buckets[n];
+            if (cur == p)
+            {
+                buckets[n] = cur->next;
+                delete_node(cur);
+                --num_elements;
+            }
+            else
+            {
+                auto next = cur->next;
+                while (next)
+                {
+                    if (next == p)
+                    {
+                        cur->next = next->next;
+                        delete_node(next);
+                        break;
+                    }
+                    else
+                    {
+                        cur = next;
+                        next = cur->next;
+                    }
+                }
+            }
+        }
+    }
+
+    template <class Value, class Key, class HashFcn, class ExtractKey, class EqualKey>
+    void hashtable<Value, Key, HashFcn, ExtractKey, EqualKey>::
+    erase(iterator first, iterator last)
+    {
+        auto f_bucket = first.cur ? bkt_num(first.cur->value) : buckets.size();
+        auto l_bucket = last.cur ? bkt_num(last.cur->value) : buckets.size();
+
+        if (first.cur == last.cur)
+            return ;
+        else if (f_bucket == l_bucket)
+            erase_bucket(f_bucket, first.cur, last.cur);
+        else
+        {
+            erase_bucket(f_bucket, first.cur, 0);
+            for (auto n = f_bucket + 1; n < l_bucket; ++n)
+                erase_bucket(n, 0);
+            if (l_bucket != buckets.size())
+                erase_bucket(l_bucket, last.cur);
+        }
+    }
+
+    template <class Value, class Key, class HashFcn, class ExtractKey, class EqualKey>
+    void hashtable<Value, Key, HashFcn, ExtractKey, EqualKey>::
+    erase(const_iterator first, const_iterator last)
+    {
+        erase(iterator(const_cast<node*>(first.cur),
+                       const_cast<hashtable*>(first.ht)),
+              iterator(const_cast<node*>(last.cur),
+                       const_cast<hashtable*>(last.ht));
+    }
+
+    template <class Value, class Key, class HashFcn, class ExtractKey, class EqualKey>
+    void hashtable<Value, Key, HashFcn, ExtractKey, EqualKey>::
+    resize(size_type num_elements_hint)
+    {
+        const size_type old_n = buckets.size();
+        if (num_elements_hint > old_n)
+        {
+            const size_type n = next_size(num_elements_hint);
+            if (n > old_n)
+            {
+                mystl::vector<node*> tmp(n, nullptr);
+                try
+                {
+                    for (auto bucket = 0; bucket < old_n; ++bucket)
+                    {
+                        node* first = buckets[bucket];
+                        while (first)
+                        {
+                            auto new_bucket = bkt_num(first->value, n);
+                            buckets[bucket] = first->next;
+                            first->next = tmp[new_bucket];
+                            tmp[new_bucket] = first;
+                            first = buckets[bucket];
+                        }
+                    }
+                    buckets.swap(tmp);
+                }
+                catch (...)
+                {
+                    for (auto bucket = 0; bucket < tmp.size(); ++bucket)
+                    {
+                        while (tmp[bucket])
+                        {
+                            node* next = tmp[bucket]->next;
+                            delete_node(tmp[bucket]);
+                            tmp[bucket] = next;
+                        }
+                    }
+                    throw ;
+                }
+            }
+        }
+    }
+
+    template <class Value, class Key, class HashFcn, class ExtractKey, class EqualKey>
+    void hashtable<Value, Key, HashFcn, ExtractKey, EqualKey>::
+    erase_bucket(const size_type n, node* first, node* last)
+    {
+        auto cur = buckets[n];
+        if (cur == first)
+            erase_bucket(n, last);
+        else
+        {
+            node* next = nullptr;
+            for (next = cur->next; next != first; cur = next, next = cur->next)
+            {}
+            while (next != nullptr)
+            {
+                cur->next = next->next;
+                delete_node(next);
+                next = cur->next;
+                --num_elements;
+            }
+        }
+    }
+
+    template <class Value, class Key, class HashFcn, class ExtractKey, class EqualKey>
+    void hashtable<Value, Key, HashFcn, ExtractKey, EqualKey>::
+    erase_bucket(const size_type n, node* last)
+    {
+        auto cur = buckets[n];
+        while (cur != last)
+        {
+            node* tmp = cur->next;
+            delete_node(cur);
+            cur = tmp;
+            buckets[n] = cur;
+            --num_elements;
+        }
+    }
+
+    template <class Value, class Key, class HashFcn, class ExtractKey, class EqualKey>
+    void hashtable<Value, Key, HashFcn, ExtractKey, EqualKey>::
+    clear()
+    {
+        for (auto i = 0; i < buckets.size(); ++i)
+        {
+            auto cur = buckets[i];
+            while (cur != nullptr)
+            {
+                node* tmp = cur->next;
+                delete_node(cur);
+                cur = tmp;
+            }
+            buckets[i] = nullptr;
+        }
+        num_elements = 0;
+    }
+
+    template <class Value, class Key, class HashFcn, class ExtractKey, class EqualKey>
+    void hashtable<Value, Key, HashFcn, ExtractKey, EqualKey>::
+    copy_from(const hashtable<Value, Key, HashFcn, ExtractKey, EqualKey>& ht)
+    {
+        buckets.clear();
+        buckets.reserve(ht.buckets.size());
+        buckets.insert(buckets.end(), ht.buckets.size(), nullptr);
+        try
+        {
+            for (auto i = 0; i < ht.buckets.size(); ++i)
+            {
+                const node* cur = ht.buckets[i];
+                if (cur != nullptr)
+                {
+                    node* copy = new_node(cur->value);
+                    buckets[i] = copy;
+                    for (auto next = cur->next; next != nullptr; cur = next, next = cur->next)
+                    {
+                        copy->next = new_node(next->value);
+                        copy = copy->next;
+                    }
+                }
+            }
+            num_elements = ht.num_elements;
+        }
+        catch (...)
+        {
+            clear();
+        }
+    }
 
 };
-
-
 #endif //TINYSTL_HASHTABLE_H
+
