@@ -16,4 +16,8 @@ add_executable(
         TinySTL/set.h
         Extend/segtree.h
         Extend/internal_bit.hpp
-        Test/segtree_test.h TinySTL/map.h TinySTL/hashtable.h)
+        Test/segtree_test.h
+        TinySTL/map.h
+        TinySTL/hashtable.h
+        TinySTL/unordered_set.h
+)
