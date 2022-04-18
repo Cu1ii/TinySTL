@@ -286,7 +286,6 @@ namespace mystl
         ExtractKey  get_key;
 
     public:
-
         explicit hashtable(size_type bucket_count,
                            const HashFcn& hf = HashFcn(),
                            const EqualKey& eql = EqualKey())
@@ -380,11 +379,11 @@ namespace mystl
         const_iterator cend()   const noexcept { return end(); }
 
     public:
-        bool empty()                 const noexcept { return num_elements == 0; }
-        bool size()                  const noexcept { return num_elements; }
-        size_type max_size()         const noexcept { return static_cast<size_type>(-1); }
-        size_type bucket_count()     const noexcept { return buckets.size(); }
-        size_type max_bucket_count() const noexcept
+        bool      empty()                 const noexcept { return num_elements == 0; }
+        size_type size()                  const noexcept { return num_elements; }
+        size_type max_size()              const noexcept { return static_cast<size_type>(-1); }
+        size_type bucket_count()          const noexcept { return buckets.size(); }
+        size_type max_bucket_count()      const noexcept
         { return stl_prime_list[PRIME_NUM - 1]; }
 
         void swap(hashtable& rhs)
@@ -430,10 +429,8 @@ namespace mystl
             return insert_multi_noresize(value);
         }
 
-        // TODO
         mystl::pair<iterator, bool> insert_unique_noresize(const value_type& value);
 
-        // TODO
         iterator insert_multi_noresize(const value_type& value);
 
         template <class InputIter>
@@ -478,8 +475,7 @@ namespace mystl
         void insert_multi(ForwardIterator first, ForwardIterator last,
                           forward_iterator_tag)
         {
-            size_type n = 0;
-            mystl::distance(first, last, n);
+            size_type n = mystl::distance(first, last);
             resize(num_elements + n);
             for (; n > 0; --n, ++first)
                 insert_multi_noresize(*first);
@@ -525,22 +521,13 @@ namespace mystl
         mystl::pair<const_iterator, const_iterator> equal_range(const key_type& key) const;
 
         size_type erase(const key_type& key);
-
         void erase(const iterator& it);
-
-        // TODO
         void erase(iterator first, iterator last);
-
-        // TODO
         void erase(const const_iterator& it);
-
-        // TODO
         void erase(const_iterator first, const_iterator last);
 
-        // TODO
         void resize(size_type num_elements_hint);
 
-        // TODO
         void clear();
 
     private:
@@ -681,7 +668,7 @@ namespace mystl
         if (cur == nullptr)
         {
             auto bucket = ht->bkt_num(old->value);
-            while (cur != nullptr && ++bucket < ht->buckets.size())
+            while (!cur && ++bucket < ht->buckets.size())
                 cur = ht->buckets[bucket];
         }
         return *this;

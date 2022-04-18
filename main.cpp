@@ -25,6 +25,7 @@ int main()
 
     RUN_ALL_TESTS();
     mystl::test::unordered_set_test::unordered_set_test();
+    mystl::test::unordered_set_test::unordered_multiset_test();
 
 #if defined(_MSC_VER) && defined(_DEBUG)
     _CrtDumpMemoryLeaks();
