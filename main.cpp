@@ -15,6 +15,7 @@
 #include "Test/set_test.h"
 #include "Test/segtree_test.h"
 #include "Test/map_test.h"
+#include "Test/unordered_set_test.h"
 
 int main()
 {
@@ -23,8 +24,7 @@ int main()
     std::cout.sync_with_stdio(false);
 
     RUN_ALL_TESTS();
-    mystl::test::map_test::map_test();
-    mystl::test::map_test::multimap_test();
+    mystl::test::unordered_set_test::unordered_set_test();
 
 #if defined(_MSC_VER) && defined(_DEBUG)
     _CrtDumpMemoryLeaks();

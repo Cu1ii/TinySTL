@@ -59,19 +59,20 @@ namespace mystl
                       const size_type bucket_count = 100,
                       const HashFcn& hashFcn = HashFcn(),
                       const EqualKey& equalKey = EqualKey())
-            : ht_(mystl::max(bucket_count, mystl::distance(first, last)), hashFcn, equalKey)
+            : ht_(mystl::max(bucket_count, static_cast<size_type>(mystl::distance(first, last))),
+                  hashFcn, equalKey)
         {
             for (; first != last; ++first)
                 ht_.insert_unique_noresize(*first);
         }
 
         unordered_set(std::initializer_list<value_type> ilist,
-                      const size_type bucket_count,
+                      const size_type bucket_count = 100,
                       const HashFcn& hashFcn = HashFcn(),
                       const EqualKey& equalKey = EqualKey())
-            : ht_(mystl::max(bucket_count, mystl::distance(first, last)), hashFcn, equalKey)
+            : ht_(mystl::max(bucket_count, static_cast<size_type>(ilist.size())), hashFcn, equalKey)
         {
-            for (auto first = ilist.begin(); first != last; ++first)
+            for (auto first = ilist.begin(); first != ilist.end(); ++first)
                 ht_.insert_unique_noresize(*first);
         }
 
@@ -158,6 +159,8 @@ namespace mystl
         // erase / clear
         void erase(iterator it)
         { ht_.erase(it); }
+        void erase(const key_type& key)
+        { ht_.erase(key); }
         void erase(iterator first, iterator last)
         { ht_.erase(first, last); }
         void clear()
@@ -175,22 +178,43 @@ namespace mystl
         const_iterator find(const key_type& key) const
         { return ht_.find(key); }
 
-        pair<iterator, iterator> equal_range(const key_type& key)
+        mystl::pair<iterator, iterator> equal_range(const key_type& key)
         { return ht_.equal_range(key); }
 
-        pair<const_iterator, const_iterator> equal_range(const key_type& key)
+        mystl::pair<const_iterator, const_iterator> equal_range(const key_type& key) const
         { return ht_.equal_range(key); }
 
         size_type bucket_count() const noexcept
         { return ht_.bucket_count(); }
 
-        size_type bucket_max_count() const noexcept
+        size_type max_bucket_count() const noexcept
         { return ht_.max_bucket_count(); }
 
-        size_type bucket(const key_type& key) const
-        { return ht_.elems_in_bucket(key); }
+        size_type bucket_size(const key_type& key) const noexcept
+        { return ht_.count(key); }
 
+        void rehash(size_type count) { ht_.resize(count); }
+
+        hasher hash_fcn() const { return ht_.hash_funct(); }
+        key_equal key_eq() const { return ht_.key_eq(); }
+
+        bool operator==(const unordered_set& rhs)
+        {
+            return this->ht_ == rhs.ht_;
+        }
+
+        bool operator!=(const unordered_set& rhs)
+        {
+            return !(this->ht_ == rhs.ht_);
+        }
     };
+
+    template <class Value, class HashFcn, class EqualKey>
+    void swap(unordered_set<Value, HashFcn, EqualKey>& lhs,
+              unordered_set<Value, HashFcn, EqualKey>& rhs)
+    {
+        lhs.swap(rhs);
+    }
 
 }
 
