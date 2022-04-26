@@ -302,7 +302,6 @@ namespace mystl
                   const EqualKey& eql = EqualKey())
             : get_key(ExtractKey()), hash(hf), equals(eql), num_elements(mystl::distance(first, last))
         {
-            // TODO
             initialize_buckets(mystl::max(bucket_count, static_cast<size_type>(mystl::distance(first, last))));
         }
 
@@ -326,12 +325,10 @@ namespace mystl
         {
             if (this != &rhs)
             {
-                // TODO
                 clear();
                 hash = rhs.hash;
                 equals = rhs.equals;
                 get_key = rhs.get_key;
-                //TODO
                 copy_from(rhs);
             }
             return *this;
@@ -341,7 +338,6 @@ namespace mystl
         {
             if (this != &rhs)
             {
-                // TODO
                 clear();
                 hash = rhs.hash;
                 equals = rhs.equals;
@@ -352,7 +348,6 @@ namespace mystl
             }
         }
 
-        // TOOD
         ~hashtable() { clear(); }
 
     public:
@@ -403,11 +398,9 @@ namespace mystl
             return result;
         }
 
-        // TODO
         template <class ...Args>
         iterator emplace_multi(Args&& ...args);
 
-        // TODO
         template <class ...Args>
         mystl::pair<iterator, bool> emplace_unique(Args&& ...args);
 
@@ -481,7 +474,6 @@ namespace mystl
                 insert_multi_noresize(*first);
         }
 
-        // TODO
         reference find_or_insert(const value_type& value);
 
         iterator find(const key_type& key)

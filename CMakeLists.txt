@@ -20,4 +20,5 @@ add_executable(
         TinySTL/map.h
         TinySTL/hashtable.h
         TinySTL/unordered_set.h
+        TinySTL/unordered_map.h
 )

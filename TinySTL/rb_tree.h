@@ -474,8 +474,8 @@ namespace mystl
         typedef rb_tree_node<Value>                     rb_tree_node;
 
 
-        typedef mystl::allocator<Value>                     allocator_type;
-        typedef mystl::allocator<Value>                     data_allocator;
+        typedef mystl::allocator<Value>                 allocator_type;
+        typedef mystl::allocator<Value>                 data_allocator;
         typedef mystl::allocator<rb_tree_node_base>     base_allocator;
         typedef mystl::allocator<rb_tree_node>          node_allocator;
 
