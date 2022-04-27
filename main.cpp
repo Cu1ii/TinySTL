@@ -25,8 +25,10 @@ int main()
     std::cout.sync_with_stdio(false);
 
     RUN_ALL_TESTS();
+    mystl::test::unordered_set_test::unordered_set_test();
+    mystl::test::unordered_set_test::unordered_multiset_test();
     mystl::test::unordered_map_test::unordered_map_test();
-    //mystl::test::unordered_set_test::unordered_multimap_test();
+    mystl::test::unordered_map_test::unordered_multimap_test();
 #if defined(_MSC_VER) && defined(_DEBUG)
     _CrtDumpMemoryLeaks();
 #endif // check memory leaks
