@@ -739,7 +739,7 @@ namespace mystl
 
         mystl::pair<iterator, bool> insert_unique(value_type&& value)
         {
-            emplace_unique(mystl::move(value));
+            return emplace_unique(mystl::move(value));
         }
 
         iterator  insert_unique(iterator hint, const value_type& value)

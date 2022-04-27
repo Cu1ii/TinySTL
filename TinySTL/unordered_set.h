@@ -143,13 +143,13 @@ namespace mystl
 
         // insert
         mystl::pair<iterator, bool> insert(const value_type& value)
-        { ht_.insert_unique(value); }
+        { return ht_.insert_unique(value); }
         mystl::pair<iterator, bool> insert(value_type&& value)
-        { ht_.emplace_unique(mystl::move(value)); }
+        { return ht_.emplace_unique(mystl::move(value)); }
         mystl::pair<iterator, bool> insert(const_iterator hint, const value_type& value)
-        { ht_.insert_unique(value); }
+        { return ht_.insert_unique(value); }
         mystl::pair<iterator, bool> insert(const_iterator hint, value_type&& value)
-        { ht_.emplace_unique(mystl::move(value)); }
+        { return ht_.emplace_unique(mystl::move(value)); }
 
         template <class InputIter>
         void insert(InputIter first, InputIter last)
@@ -347,13 +347,13 @@ namespace mystl
 
         // insert
         iterator insert(const value_type& value)
-        { ht_.emplace_multi(value); }
+        { return ht_.emplace_multi(value); }
         iterator insert(value_type&& value)
-        { ht_.emplace_multi(mystl::move(value)); }
+        { return ht_.emplace_multi(mystl::move(value)); }
         iterator insert(const_iterator hint, const value_type& value)
-        { ht_.emplace_multi(value); }
+        { return ht_.emplace_multi(value); }
         iterator insert(const_iterator hint, value_type&& value)
-        { ht_.emplace_multi(mystl::move(value)); }
+        { return ht_.emplace_multi(mystl::move(value)); }
 
         template <class InputIter>
         void insert(InputIter first, InputIter last)

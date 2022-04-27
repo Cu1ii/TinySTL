@@ -346,6 +346,7 @@ namespace mystl
                 buckets = mystl::move(rhs.buckets);
                 rhs.num_elements = 0;
             }
+            return *this;
         }
 
         ~hashtable() { clear(); }
@@ -598,13 +599,10 @@ namespace mystl
             n = nullptr;
         }
 
-        // TODO
         void erase_bucket(const size_type n, node* first, node* last);
 
-        //TODO
         void erase_bucket(const size_type n, node* last);
 
-        // TODO
         void copy_from(const hashtable& ht);
 
     public:
@@ -636,7 +634,7 @@ namespace mystl
         if (cur == nullptr)
         {
             auto bucket = ht->bkt_num(old->value);
-            while (cur != nullptr && ++bucket < ht->buckets.size())
+            while (cur == nullptr && ++bucket < ht->buckets.size())
                 cur = ht->buckets[bucket];
         }
         return *this;
@@ -660,7 +658,7 @@ namespace mystl
         if (cur == nullptr)
         {
             auto bucket = ht->bkt_num(old->value);
-            while (!cur && ++bucket < ht->buckets.size())
+            while (cur == nullptr && ++bucket < ht->buckets.size())
                 cur = ht->buckets[bucket];
         }
         return *this;
@@ -795,7 +793,7 @@ namespace mystl
                 typename hashtable<Value, Key, HashFcn, ExtractKey, EqualKey>::iterator>
     hashtable<Value, Key, HashFcn, ExtractKey, EqualKey>::equal_range(const key_type& key)
     {
-        const size_type n = bkt_num(key);
+        const size_type n = bkt_num_key(key);
 
         for (auto first = buckets[n]; first; first = first->next)
         {
@@ -840,7 +838,7 @@ namespace mystl
     typename hashtable<Value, Key, HashFcn, ExtractKey, EqualKey>::size_type
     hashtable<Value, Key, HashFcn, ExtractKey, EqualKey>::erase(const key_type& key)
     {
-        const size_type n = bkt_num(key);
+        const size_type n = bkt_num_key(key);
         auto first = buckets[n];
         size_type erased = 0;
         if (first != nullptr)

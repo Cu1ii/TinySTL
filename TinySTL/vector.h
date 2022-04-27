@@ -379,9 +379,8 @@ namespace mystl
                 mystl::uninitialized_copy(rhs.begin() + size(), rhs.end(), finish);
                 end_of_storage = finish = start + len;
             }
-            return *this;
         }
-
+        return *this;
     }
 
     template <class T>

@@ -22,12 +22,12 @@ namespace mystl
     {
     private:
         typedef hashtable<pair<const Key, T>, Key, HashFcn,
-                          selectfirst<const Key, T>, EqualKey> ht;
+                          selectfirst<pair<const Key, T>>, EqualKey> ht;
         ht ht_;
 
     public:
-        typedef typename T                      data_type;
-        typedef typename T                      mapped_type
+        typedef  T                              data_type;
+        typedef  T                              mapped_type;
         typedef typename ht::allocator_type     allocator_type;
         typedef typename ht::key_type           key_type;
         typedef typename ht::value_type         value_type;
@@ -68,15 +68,17 @@ namespace mystl
                       const EqualKey& equal = EqualKey())
             : ht_(mystl::max(bucket_count, static_cast<size_type>(mystl::distance(first, last))), hash, equal)
         {
+            for (; first != last; ++first)
+                ht_.insert_unique_noresize(*first);
         }
 
         unordered_map(std::initializer_list<value_type> ilist,
                       const size_type bucket_count = 100,
                       const HashFcn& hash = HashFcn(),
                       const EqualKey& equal = EqualKey())
-            : ht_(mystl::max(bucket_count, static_cast<size_type>(mystl::distance(ilist.size()))), hash, equal)
+            : ht_(mystl::max(bucket_count, static_cast<size_type>(ilist.size())), hash, equal)
         {
-            for (auto first = ilist.begin(), last = ilist.end(); first != last; ++fileno())
+            for (auto first = ilist.begin(), last = ilist.end(); first != last; ++first)
                 ht_.insert_unique_noresize(*first);
         }
 
@@ -108,6 +110,7 @@ namespace mystl
             ht_.resize(ilist.size());
             for (auto first = ilist.begin(), last = ilist.end(); last != first; ++first)
                 ht_.insert_unique_noresize(*first);
+            return *this;
         }
 
         ~unordered_map() = default;
@@ -167,7 +170,7 @@ namespace mystl
         mapped_type& at(const key_type& key)
         {
             iterator it = ht_.find(key);
-            THROW_OUT_OF_RANGE_IF(it.node == nullptr, "unordered_map<Key, T> no such element exists");
+            THROW_OUT_OF_RANGE_IF(it.cur == nullptr, "unordered_map<Key, T> no such element exists");
             return it->second;
         }
 
@@ -186,7 +189,7 @@ namespace mystl
         mapped_type& operator[](key_type&& key)
         {
             iterator it = ht_.find(key);
-            if (it.node == nullptr)
+            if (it.cur == nullptr)
                 it = ht_.emplace_unique(mystl::move(key), T{}).first;
             return it->second;
         }
@@ -205,10 +208,13 @@ namespace mystl
         { return ht_.equal_range(key); }
 
         size_type bucket_size() const noexcept
-        { return ht_.bucket_size(); }
+        { return ht_.bucket_count(); }
 
         size_type max_bucket_count() const noexcept
         { return ht_.max_bucket_count(); }
+
+        void rehash(size_type bucket_count)
+        { ht_.resize(bucket_count); }
 
     public:
         bool operator==(const unordered_map& rhs)
