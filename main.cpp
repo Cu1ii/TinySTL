@@ -9,6 +9,7 @@
 #endif // check memory leaks
 
 #include "Test/list_test.h"
+#include "Test/slist_test.h"
 #include "Test/stack_test.h"
 #include "Test/vector_test.h"
 #include "Test/queue_test.h"
@@ -25,10 +26,7 @@ int main()
     std::cout.sync_with_stdio(false);
 
     RUN_ALL_TESTS();
-    mystl::test::unordered_set_test::unordered_set_test();
-    mystl::test::unordered_set_test::unordered_multiset_test();
-    mystl::test::unordered_map_test::unordered_map_test();
-    mystl::test::unordered_map_test::unordered_multimap_test();
+    mystl::test::slist_test::slist_test();
 #if defined(_MSC_VER) && defined(_DEBUG)
     _CrtDumpMemoryLeaks();
 #endif // check memory leaks

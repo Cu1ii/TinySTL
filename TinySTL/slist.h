@@ -24,7 +24,7 @@ namespace mystl
     };
 
     // 插入新节点
-    inline slist_node_base* slist_make_link(slist_make_link* prev_node,
+    inline slist_node_base* slist_make_link(slist_node_base* prev_node,
                                             slist_node_base* new_node)
     {
         new_node->next = prev_node->next;
@@ -102,7 +102,7 @@ namespace mystl
 
         node_base_ptr node;
 
-        slist_iterator(list_node* x) : node(x)
+        slist_iterator(list_node_ptr x) : node(x)
         {
         }
 
@@ -118,23 +118,29 @@ namespace mystl
         void incr() { node = node->next; }
 
         reference operator*() const
-        { return dynamic_cast<list_node_ptr>(node)->data; }
+        { return ((list_node_ptr)node)->data; }
 
         pointer operator->() const
         { return &(operator*()); }
 
-        iterator& operator++()
+        self& operator++()
         {
             incr();
             return *this;
         }
 
-        iterator operator++(int)
+        self operator++(int)
         {
             auto tmp = *this;
             incr();
             return tmp;
         }
+
+        bool operator==(const self& rhs)
+        { return node == rhs.node; }
+
+        bool operator!=(const self& rhs)
+        { return !(node == rhs.node); }
     };
 
     template <class T>
@@ -194,7 +200,7 @@ namespace mystl
             head_->next = nullptr;
             size_ = 0;
             try {
-                insert_after_fill(head, n, x);
+                insert_after_fill(head_, n, x);
             }
             catch (...) {
                 clear();
@@ -208,7 +214,7 @@ namespace mystl
             head_->next = nullptr;
             size_ = 0;
             try {
-                insert_after_range(head, first, last);
+                insert_after_range(head_, first, last);
             }
             catch (...) {
                 clear();
@@ -258,13 +264,13 @@ namespace mystl
         slist& operator=(slist&& rhs)
         {
             clear();
-            splice(head_->next, rhs);
+            splice(iterator((list_node*)(head_->next)), rhs);
             return *this;
         }
 
         slist& operator=(std::initializer_list<value_type> ilist)
         {
-            list tmp(ilist.begin(), ilist.end());
+            slist tmp(ilist.begin(), ilist.end());
             swap(tmp);
             return *this;
         }
@@ -274,7 +280,7 @@ namespace mystl
             if (head_)
             {
                 clear();
-                list_node_allocator::deallocate(head_);
+                list_node_allocator::deallocate((list_node*)(head_));
                 head_ = nullptr;
                 size_ = 0;
             }
@@ -282,16 +288,16 @@ namespace mystl
 
     public:
         iterator        begin()           noexcept
-        { return head_->next; }
+        { return (list_node*)(head_->next); }
 
         const_iterator  begin() const     noexcept
-        { return head_->next; }
+        { return (list_node*)(head_->next); }
 
         iterator        end()             noexcept
-        { return nullptr; }
+        { return iterator(nullptr); }
 
         const_iterator  end()   const     noexcept
-        { return nullptr;}
+        { return iterator(nullptr);}
 
         const_iterator cbegin() const noexcept
         { return begin(); }
@@ -311,30 +317,38 @@ namespace mystl
             mystl::swap(size_, other.size_);
         }
 
+        bool operator==(const slist& rhs);
+        bool operator<(const slist& rhs);
+
     public:
         reference front()
-        { return dynamic_cast<list_node*>(head_->next)->data; }
+        { return ((list_node*)(head_->next))->data; }
 
         const_reference front() const
-        { return dynamic_cast<list_node*>(head_->next)->data; }
+        { return ((list_node*)(head_->next))->data; }
 
         template <class ...Args>
         void emplace_front(Args&& ...args)
         {
             slist_make_link(head_, create_node(mystl::forward<Args>(args)...));
+            ++size_;
         }
 
         void push_front(const value_type& value)
-        { slist_make_link(head_, create_node(value)); }
+        {
+            slist_make_link(head_, create_node(value));
+            ++size_;
+        }
 
         void push_front(value_type&& value)
         { emplace_front(mystl::move(value)); }
 
         void pop_front()
         {
-            list_node* node = dynamic_cast<list_node*>(head_->next);
+            list_node* node = (list_node*)(head_->next);
             head_->next = node->next;
             destory_node(node);
+            --size_;
         }
 
         iterator previous(const_iterator pos)
@@ -349,31 +363,40 @@ namespace mystl
 
     private:
         list_node* insert_after(list_node_base* pos, const value_type& value)
-        { return dynamic_cast<list_node*>(slist_make_link(pos, create_node(value)));}
+        {
+            ++size_;
+            return dynamic_cast<list_node*>(slist_make_link(pos, create_node(value)));
+        }
 
         list_node* emplace_after(list_node_base* pos, value_type&& value)
-        { return dynamic_cast<list_node*>(slist_make_link(pos, create_node(mystl::move(value)))); }
+        {
+            ++size_;
+            return (list_node*)(slist_make_link(pos, create_node(mystl::move(value))));
+        }
 
         void insert_after_fill(list_node_base* pos,
                                size_type n, const value_type& value)
         {
             for (size_type i = 0; i < n; ++i)
                 pos = slist_make_link(pos, create_node(value));
+            size_ += n;
         }
 
         template <class InputIter>
         void insert_after_range(list_node_base* pos, InputIter first, InputIter last)
         {
             for (; first != last; ++first)
-                pos = slist_make_link(pos, create_node(*first));
+                pos = slist_make_link(pos, create_node(*first)),
+                ++size_;
         }
 
         list_node_base* erase_after(list_node_base* pos)
         {
-            auto next = dynamic_cast<list_node*>(pos->next);
+            auto next = (list_node*)(pos->next);
             auto next_next = next->next;
             pos->next = next_next;
             destory_node(next);
+            --size_;
             return next_next;
         }
 
@@ -381,11 +404,12 @@ namespace mystl
         list_node_base* erase_after(list_node_base* before_first,
                                     list_node_base* last_node)
         {
-            for (auto cur = dynamic_cast<list_node*>(before_first->next); cur != last_node; )
+            for (auto cur = (list_node*)(before_first->next); cur != last_node; )
             {
                 list_node* tmp = cur;
-                cur = dynamic_cast<list_node*>(cur->next);
+                cur = (list_node*)(cur->next);
                 destory_node(tmp);
+                --size_;
             }
             before_first->next = last_node;
             return last_node;
@@ -398,7 +422,7 @@ namespace mystl
             return insert_after(pos.node, value);
         }
 
-        iterator insert_after(iterator pos, value_type&& value)
+        iterator emplace_after(iterator pos, value_type&& value)
         {
             return emplace_after(pos.node, mystl::move(value));
         }
@@ -423,7 +447,254 @@ namespace mystl
         {
             return insert_after(slist_previous(head_, pos.node), value);
         }
+
+        iterator emplace(iterator pos, value_type&& value)
+        {
+            return emplace_after(slist_previous(head_, pos.node), mystl::move(value));
+        }
+
+        iterator insert(iterator pos, value_type&& value)
+        { return emplace(pos, mystl::move(value)); }
+
+        iterator insert(iterator pos)
+        {
+            return insert_after(slist_previous(head_, pos.node), value_type());
+        }
+
+        void insert(iterator pos, size_type n, const value_type& value)
+        {
+            insert_after_fill(slist_previous(head_, pos.node), n, value);
+        }
+
+        template  <class InputIter>
+        void insert(iterator pos, InputIter first, InputIter last)
+        {
+            insert_after_range(slist_previous(head_, pos.node), first, last);
+        }
+
+    public:
+
+        iterator erase_after(iterator pos)
+        {
+            return dynamic_cast<list_node*>(erase_after(pos.node));
+        }
+        
+        iterator erase_after(iterator before_first, iterator last)
+        {
+            return dynamic_cast<list_node*>(erase_after(before_first.node, last.node));
+        }
+        
+        iterator erase(iterator pos)
+        {
+            return (list_node*)(erase_after(slist_previous(head_, pos.node)));
+        }
+        
+        iterator erase(iterator first, iterator last)
+        {
+            return (list_node*)(erase_after(slist_previous(head_, first.node), last.node));
+        }
+
+        template <class InputIter>
+        void assign(InputIter first, InputIter last);
+
+        void assign(std::initializer_list<value_type> ilist)
+        {
+            assign(ilist.begin(), ilist.end());
+        }
+
+        void resize(size_type new_size, const value_type& value);
+        void resize(size_type new_size) { resize(new_size, value_type()); }
+        void clear() { erase_after(head_, nullptr); }
+
+    public:
+
+        // 将区间 [before_first + 1, before_last + 1) 移动到 pos 之后
+        void splic_after(iterator pos, iterator before_first, iterator before_last)
+        {
+            if (before_first != before_last)
+                slist_splice_after(pos.node, before_first.node, before_last.node);
+            size_ += mystl::distance(before_first, before_last);
+        }
+
+        // 将 prev 后面的元素移动到 pos 之后
+        void splice_after(iterator pos, iterator prev)
+        {
+            slist_splice_after(pos.node, prev.node, prev.node->next);
+            ++size_;
+        }
+
+        // 将其他 silist 移动到 pos 之后
+        void splice(iterator pos, slist& other)
+        {
+            if (other.head_->next)
+            {
+                slist_splice_after(slist_previous(head_, pos.node),
+                                   other.head_,
+                                   slist_previous(other.head_, 0));
+                size_ += other.size();
+            }
+        }
+
+        // 将 (other.begin(), pos) 移动到 pos 后
+        void splice(iterator pos, slist& other, iterator i)
+        {
+            size_ += mystl::distance(other.begin(), i);
+            slist_splice_after(slist_previous(head_, pos.node),
+                               slist_previous(other.head_, i.node),
+                               i.node);
+        }
+
+        // 将 (first, last) 移动到 pos 后
+        void splice(iterator pos, slist& other, iterator first, iterator last)
+        {
+            if (first != last)
+            {
+                size_ += mystl::distance(first, last);
+                slist_splice_after(slist_previous(head_, pos.node),
+                                   slist_previous(other.head_, first.node),
+                                   slist_previous(other.head_, last.node));
+            }
+        }
+
+    public:
+
+        void reverse()
+        {
+            if (head_->next)
+                head_->next = slist_reverse(head_->next);
+        }
+
+        void remove(const value_type& val);
+        void unique();
+        void merge(slist& other);
+        void sort();
     };
-}
+
+    template <class T>
+    template <class InputIter>
+    void slist<T>::assign(InputIter first, InputIter last)
+    {
+        list_node_base* p1 = head_;
+        list_node* n1 = (list_node*)(head_->next);
+        for (; n1 != nullptr && first != last; ++first)
+        {
+            n1->data = *first;
+            p1 = n1;
+            n1 = (list_node*)(n1->next);
+        }
+        if (first == last)
+            erase_after(p1, 0);
+        else
+            insert_after_range(p1, first, last);
+    }
+
+    template <class T>
+    inline bool slist<T>::operator==(const slist& rhs)
+    {
+        list_node* n1 = dynamic_cast<list_node*>(head_->next);
+        list_node* n2 = dynamic_cast<list_node*>(rhs.head_->next);
+        while (n1 && n2 && n1->data == n2->data)
+        {
+            n1 = dynamic_cast<list_node*>(n1->next);
+            n2 = dynamic_cast<list_node*>(n2->next);
+        }
+        return n1 == nullptr && n2 == nullptr;
+    }
+
+    template <class T>
+    inline bool slist<T>::operator<(const slist<T>& rhs)
+    {
+        return mystl::lexicographical_compare(begin(), end(), rhs.begin(), rhs.end());
+    }
+
+    template <class T>
+    void slist<T>::resize(size_type new_size, const value_type& value)
+    {
+        slist tmp(new_size, value);
+        swap(tmp);
+    }
+
+    template <class T>
+    void slist<T>::remove(const value_type& value)
+    {
+        list_node_base* cur = head_;
+        while (cur && cur->next)
+        {
+            if (((list_node*)(cur->next))->data == value)
+                erase_after(cur);
+            else
+                cur = cur->next;
+        }
+    }
+
+    template <class T>
+    void slist<T>::unique()
+    {
+        list_node_base* cur = head_->next;
+        if (cur)
+        {
+            while (cur->next)
+            {
+                if (((list_node*)(cur->next))->data ==
+                    ((list_node*)(cur))->data)
+                    erase_after(cur);
+                else
+                    cur = cur->next;
+            }
+        }
+    }
+
+    template <class T>
+    inline void swap(slist<T>& lhs, slist<T>& rhs)
+    {
+        lhs.swap(rhs);
+    }
+
+    template <class T>
+    void slist<T>::merge(slist<T>& other)
+    {
+        list_node_base* n1 = head_;
+        while (n1->next && other.head_->next)
+        {
+            if (((list_node*)(other.head_->next))->data <
+                ((list_node*)(n1->next))->data)
+                slist_splice_after(n1, other.head_, other.head_->next);
+            n1 = n1->next;
+        }
+        if (other.head_->next)
+        {
+            n1->next = other.head_->next;
+            other.head_->next = nullptr;
+        }
+    }
+
+    template <class T>
+    void slist<T>::sort()
+    {
+        if (head_->next && head_->next->next)
+        {
+            slist<T> carry;
+            slist<T> counter[64];
+            int fill = 0;
+            while (!empty())
+            {
+                slist_splice_after(carry.head_, head_, head_->next);
+                int i = 0;
+                while (i < fill && !counter[i].empty())
+                {
+                    counter[i].merge(carry);
+                    carry.swap(counter[i]);
+                    ++i;
+                }
+                carry.swap(counter[i]);
+                if (i == fill)
+                    ++fill;
+            }
+            for (int i = 1; i < fill; ++i)
+                counter[i].merge(counter[i - 1]);
+            this->swap(counter[fill - 1]);
+        }
+    }
+};
 
 #endif //TINYSTL_SLIST_H
