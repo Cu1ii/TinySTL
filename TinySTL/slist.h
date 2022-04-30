@@ -535,16 +535,16 @@ namespace mystl
             }
         }
 
-        // 将 (other.begin(), pos) 移动到 pos 后
+        // 将 other 中的 i 移动到 pos 后
         void splice(iterator pos, slist& other, iterator i)
         {
-            size_ += mystl::distance(other.begin(), i);
+            ++size_;
             slist_splice_after(slist_previous(head_, pos.node),
                                slist_previous(other.head_, i.node),
                                i.node);
         }
 
-        // 将 (first, last) 移动到 pos 后
+        // 将 [first, last) 移动到 pos 后
         void splice(iterator pos, slist& other, iterator first, iterator last)
         {
             if (first != last)
