@@ -39,10 +39,9 @@ namespace mystl
 
     protected:
 
-
-        iterator start;
-        iterator finish;
-        iterator end_of_storage;
+        T* start;
+        T* finish;
+        T* end_of_storage;
 
         void insert_aux(iterator position, const T& value);
 

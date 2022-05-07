@@ -27,6 +27,7 @@ int main()
 
     RUN_ALL_TESTS();
     mystl::test::slist_test::slist_test();
+    mystl::test::queue_test::queue_test();
 #if defined(_MSC_VER) && defined(_DEBUG)
     _CrtDumpMemoryLeaks();
 #endif // check memory leaks
