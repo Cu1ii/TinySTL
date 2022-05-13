@@ -637,8 +637,8 @@ namespace mystl
             return *this;
         }
 
-        rb_tree<Key, Value, KeyOfValue, Compare>
-                & operator=(rb_tree<Key, Value, KeyOfValue, Compare>&& rhs)
+        rb_tree<Key, Value, KeyOfValue, Compare>&
+                operator=(rb_tree<Key, Value, KeyOfValue, Compare>&& rhs)
         {
             clear();
             header = mystl::move(rhs.header);

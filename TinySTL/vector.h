@@ -71,7 +71,7 @@ namespace mystl
         { range_initialize(first, last); }
 
         vector(const vector<T>& other)
-        { range_initialize(other.start, other.finish); }
+        { range_initialize(other.begin(), other.end()); }
 
         vector(vector<T>&& other)
             :start(other.start),
@@ -440,7 +440,7 @@ namespace mystl
             *cur = *first;
         }
         if (first == last)
-            earse(cur, finish);
+            erase(const_iterator(cur), const_iterator(finish));
         else
             insert(finish, first, last);
     }

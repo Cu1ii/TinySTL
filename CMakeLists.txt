@@ -23,4 +23,5 @@ add_executable(
         TinySTL/unordered_map.h
         TinySTL/basic_string.h
         TinySTL/slist.h
+        TinySTL/deque.h
 )
