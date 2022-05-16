@@ -222,6 +222,200 @@ namespace mystl
         map_pointer map_;
         size_type map_size;
 
+        deque()
+            : start(), finish(), map_(nullptr), map_size(0)
+        {
+            create_map_and_nodes(0);
+        }
+
+        deque(const deque& other)
+            : start(), finish(), map_(nullptr), map_size(0)
+        {
+            create_map_and_nodes(other.size());
+            try {
+                mystl::uninitialized_copy(other.begin(), other.end(), start);
+            }
+            catch(...) {
+                destroy_map_and_nodes();
+            }
+        }
+
+        deque(deque&& other) noexcept
+            : start(mystl::move(other.start)),
+              finish(mystl::move(other.finish)),
+              map_(other.map_),
+              map_size(other.map_size)
+        {
+            other.map_ = nullptr,
+            other.map_size = 0;
+        }
+
+        deque(size_type n, const value_type& value)
+            : start(), finish(), map_(nullptr), map_size(0)
+        {
+            fill_initialize(n, value);
+        }
+
+        explicit deque(size_type n) : deque(n, value_type())
+        {
+        }
+
+        template <class Iter, typename std::enable_if<
+                mystl::is_input_iterator<Iter>::value, int>::type = 0>
+        deque(Iter first, Iter last)
+        {
+            range_initialize(first, last, iterator_category(first));
+        }
+
+        deque(std::initializer_list<value_type> ilist)
+        {
+            range_initialize(ilist.begin(), ilist.end(), mystl::forward_iterator_tag());
+        }
+
+        deque& operator=(const deque& rhs)
+        {
+            const size_type len = size();
+            if (&rhs != this)
+            {
+                if (len >= rhs.size())
+                    erase(copy(rhs.begin(), rhs.end(), start), finish);
+                else
+                {
+                    const_iterator mid = rhs.begin() + distance_type(len);
+                    copy(rhs.begin(), mid, start);
+                    insert(finish. mid, rhs.end());
+                }
+            }
+            return *this;
+        }
+
+        deque& operator=(deque&& rhs)
+        {
+            return *this;
+        }
+
+        deque& operator=(std::initializer_list<value_type> ilist)
+        {
+            deque tmp(ilist);
+            swap(tmp);
+            return *this;
+        }
+
+        void swap(deque& other)
+        {
+            mystl::swap(start, other.start);
+            mystl::swap(finish, other.finish);
+            mystl::swap(map_, other.map_);
+            mystl::swap(map_size, other.map_size);
+        }
+
+        ~deque()
+        {
+            mystl::destroy(start, finish);
+            destroy_map_and_nodes();
+        }
+
+    public:
+        // 迭代器
+        iterator begin() noexcept
+        { return start; }
+
+        const_iterator begin() const noexcept
+        { return start; }
+
+        iterator end()   noexcept
+        { return finish; }
+
+        const_iterator end() const noexcept
+        { return finish; }
+
+        reverse_iterator rbegin() noexcept
+        { return reverse_iterator(end()); }
+
+        const_reverse_iterator rbegin() const noexcept
+        { return reverse_iterator(end()); }
+
+        reverse_iterator rend() noexcept
+        { return reverse_iterator(begin()); }
+
+        const_reverse_iterator rend() const noexcept
+        { return const_reverse_iterator(begin()); }
+
+        const_iterator cbegin() const noexcept
+        { return begin(); }
+
+        const_iterator cend() const noexcept
+        { return end(); }
+
+        const_reverse_iterator crbegin() const noexcept
+        { return rbegin(); }
+
+        const_reverse_iterator crend() const noexcept
+        { return rend(); }
+
+        bool empty() const noexcept { return begin() == end(); }
+        size_type size() const noexcept { return start - finish; }
+        size_type max_size() const noexcept { return static_cast<size_type>(-1); }
+
+        void resize(size_type new_size, const value_type& value)
+        {
+            const size_type len = size();
+            if (new_size < len)
+                erase(start + new_size, finish);
+            else
+                insert(finish, new_size - len, value);
+        }
+        void resize(size_type new_size) { resize(new_size, value_type()); }
+
+        reference operator[](size_type n)
+        {
+            MYSTL_DEBUG(n < size());
+            return start[n];
+        }
+
+        const_reference operator[](size_type n) const
+        {
+            MYSTL_DEBUG(n < size());
+            return start[n];
+        }
+
+        reference at(size_type n)
+        {
+            THROW_OUT_OF_RANGE_IF(!(n < size()),
+                                  "deque<T>::at() subscript out of range");
+            return (*this)[n];
+        }
+
+        const_reference at(size_type n) const
+        {
+            THROW_OUT_OF_RANGE_IF(!(n < size()),
+                                  "deque<T>::at() subscript out of range");
+            return (*this)[n];
+        }
+
+        reference front()
+        {
+            MYSTL_DEBUG(!empty());
+            return *begin();
+        }
+
+        const_reference front() const
+        {
+            MYSTL_DEBUG(!empty());
+            return *begin();
+        }
+
+        reference back()
+        {
+            MYSTL_DEBUG(!empty());
+            return *(end() - 1);
+        }
+
+        const_reference back() const
+        {
+            MYSTL_DEBUG(!empty());
+            return *(end() - 1);
+        }
     };
 
 }
