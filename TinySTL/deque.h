@@ -416,6 +416,85 @@ namespace mystl
             MYSTL_DEBUG(!empty());
             return *(end() - 1);
         }
+
+        void assign(size_type n, const value_type& value)
+        {
+            fill_assign(n, value);
+        }
+
+        template<class Iter, typename std::enable_if<
+                mystl::is_input_iterator<Iter>::value, int>::type = 0>
+        void assign(Iter first, Iter last)
+        {
+            copy_assign(first, last, iterator_category(first));
+        }
+
+        void assign(std::initializer_list<value_type> ilist)
+        {
+            copy_assign(ilist.begin(), ilist.end(), mystl::forward_iterator_tag());
+        }
+
+        // emplace_front() / emplace_back() / emplace()
+        template <class ...Args>
+        void emplace_front(Args&& ...args);
+
+        template <class ...Args>
+        void emplace_back(Args&& ...args);
+
+        template <class ...Args>
+        void emplace(iterator pos, Args&& ...args);
+
+        // push_front() / push_back()
+        void push_front(const value_type& value)
+        {
+            if (start.cur != start.first)
+            {
+                mystl::construct(start.cur - 1, value);
+                --start.cur;
+            }
+            else
+                push_front_aux(value);
+        }
+
+        void push_back(const value_type& value)
+        {
+            if (finish.cur != finish.last - 1)
+            {
+                mystl::construct(finish.cur, value);
+                ++finish.cur;
+            }
+            else
+                push_back_aux(value);
+        }
+
+        void push_front(value_type&& value) { emplace_front(mystl::move(value)); }
+        void push_back(value_type&& value) { emplace_back(mystl::move(value)); }
+
+        // pop_back() / pop_front()
+
+        void pop_back()
+        {
+            if (finish.cur != finish.first)
+            {
+                --finish.cur;
+                mystl::destroy(finish.cur);
+            }
+            else
+                pop_back_aux();
+        }
+
+        void pop_front()
+        {
+            if (start.cur != start.last - 1)
+            {
+                mystl::destroy(start.cur);
+                ++start.cur;
+            }
+            else
+                pop_front_aux();
+        }
+
+        // insert()
     };
 
 }
