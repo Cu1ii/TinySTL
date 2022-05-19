@@ -441,7 +441,6 @@ namespace mystl
             copy_assign(ilist.begin(), ilist.end(), mystl::forward_iterator_tag());
         }
 
-        // TODO
         // emplace_front() / emplace_back() / emplace()
         template <class ...Args>
         void emplace_front(Args&& ...args);
@@ -690,7 +689,7 @@ namespace mystl
 
     template <class T>
     template <class ...Args>
-    void deque<T>::emplace_front(Args&& args...)
+    void deque<T>::emplace_front(Args&& ...args)
     {
         if (start.cur != start.first)
         {
@@ -715,7 +714,7 @@ namespace mystl
 
     template <class T>
     template <class ...Args>
-    void deque<T>::emplace_back(Args&& args...)
+    void deque<T>::emplace_back(Args&& ...args)
     {
         if (finish.cur != finish.last - 1)
         {
@@ -825,7 +824,214 @@ namespace mystl
     }
 
     template <class T>
+    typename deque<T>::iterator
+    deque<T>::erase(iterator position)
+    {
+        auto nex = position;
+        ++nex;
+        const size_type elems_before = position - start;
+        if (elems_before < (size() / 2))
+        {
+            mystl::copy_backward(start, position, nex);
+            pop_front();
+        }
+        else
+        {
+            mystl::copy(nex, finish, position);
+            pop_back();
+        }
+        return start + elems_before;
+    }
 
+    template <class T>
+    typename deque<T>::iterator
+    deque<T>::erase(iterator first, iterator last)
+    {
+        if (first == start && last == finish)
+        {
+            clear();
+            return finish;
+        }
+        else
+        {
+            const size_type len = last - first;
+            const size_type elems_before = first - start;
+            if (elems_before < ((size() - len) / 2))
+            {
+                mystl::copy_backward(start, first, last);
+                auto new_start = start + len;
+                mystl::destroy(start, new_start);
+                start = new_start;
+            }
+            else
+            {
+                mystl::copy(last, finish, first);
+                auto new_finish = finish - len;
+                mystl::destroy(new_finish, finish);
+                finish = new_finish;
+            }
+            return start + elems_before;
+        }
+    }
+
+    template <class T>
+    void deque<T>::clear()
+    {
+        // clear 会保留头部缓冲区
+        for (map_pointer cur = start.node + 1; cur < finish.node; ++cur)
+        {
+            data_allocator::destroy(*cur, *cur + buffer_size);
+            data_allocator::deallocate(*cur, buffer_size);
+        }
+        if (start.node != finish.node)
+        {
+            mystl::destroy(start.cur, start.last);
+            mystl::destroy(finish.first, finish.cur);
+            data_allocator::deallocate(finish.first, buffer_size);
+        }
+        else
+        {
+            mystl::destroy(start.cur, finish.cur);
+        }
+        finish = start;
+    }
+
+    /*****************************************************************/
+    // helper function
+    template <class T>
+    void deque<T>::create_map_and_nodes(size_type num_elements)
+    {
+        size_type num_nodes = num_elements / buffer_size + 1;
+        map_size = max(initial_map_size, num_nodes + 2);
+        map_ = map_allocator::allocate(map_size);
+        map_pointer nstart = map + (map_size - num_nodes) / 2;
+        map_pointer nfinish = nstart + num_nodes - 1;
+        map_pointer cur = nstart;
+        try
+        {
+            for (; cur <= nfinish; ++cur)
+                *cur = allocate_node();
+        }
+        catch (...)
+        {
+            for (auto n = nstart; n < cur; ++n)
+                deallocate_node(*n);
+            map_allocator::deallocate(map_, map_size);
+            throw ;
+        }
+        start.set_node(nstart);
+        finish.set_node(nfinish);
+        start.cur = start.first;
+        finish.cur = finish.first + num_elements % buffer_size;
+    }
+
+    // 只用于 catch 子句中用作清理功能
+    template <class T>
+    void deque<T>::destroy_map_and_nodes()
+    {
+        for (auto cur = start.node; cur <= finish.node; ++cur)
+            deallocate_node(*cur);
+        map_allocator::deallocate(map_, map_size);
+    }
+
+    template <class T>
+    void deque<T>::fill_initialize(size_type n, const value_type& value)
+    {
+        create_map_and_nodes(n);
+        map_pointer cur;
+        try
+        {
+            for (cur = start.node; cur < finish.node; ++cur)
+                uninitialized_fill(*cur, *cur + buffer_size, value);
+            uninitialized_fill(finish.first, finish.cur, value);
+        }
+        catch (...)
+        {
+            for (auto n = start.node; n < cur; ++n)
+                data_allocator::destroy(*n, *n + buffer_size);
+            destroy_map_and_nodes();
+            throw ;
+        }
+    }
+
+    template <class T>
+    template <class InputIter>
+    void deque<T>::range_initialize(InputIter first, InputIter last, input_iterator_tag)
+    {
+        create_map_and_nodes(0);
+        for (; first != last; ++first)
+            push_back(*first);
+    }
+
+    template <class T>
+    template <class ForwardIter>
+    void deque<T>::range_initialize(ForwardIter first, ForwardIter last, forward_iterator_tag)
+    {
+        size_type n = mystl::distance(first, last);
+        create_map_and_nodes(n);
+        try
+        {
+            mystl::uninitialized_copy(first, last, start);
+        }
+        catch (...)
+        {
+            destroy_map_and_nodes();
+            throw ;
+        }
+    }
+
+    template <class T>
+    void deque<T>::fill_assign(size_type n, const value_type& value)
+    {
+        if (n > size())
+        {
+            mystl::fill(begin(), end(), value);
+            insert(end(), n - size(), value);
+        }
+        else
+        {
+            erase(begin() + n, end());
+            mystl::fill(begin(), end(), value);
+        }
+    }
+
+    template <class T>
+    template <class InputIter>
+    void deque<T>::copy_assign(InputIter first, InputIter last, input_iterator_tag)
+    {
+        auto first1 = begin();
+        auto last1 = end();
+        for (; first != last && first1 != last1; ++first, ++first1)
+            *first1 = *first1;
+        if (first1 != last1)
+            erase(first, last);
+        else
+            insert(finish, first, last, input_iterator_tag());
+    }
+
+    template <class T>
+    template <class ForwardIter>
+    void deque<T>::copy_assign(ForwardIter first, ForwardIter last, forward_iterator_tag)
+    {
+        const size_type len1 = size();
+        const size_type len2 = mystl::distance(first, last);
+        if (len1 < len2)
+        {
+            auto nex = first;
+            mystl::advance(nex, len1);
+            mystl::copy(first, nex, start);
+            insert(finish, nex, last, forward_iterator_tag());
+        }
+        else
+            erase(mystl::copy(first, last, start), finish);
+    }
+
+    template <class T>
+    typename deque<T>::iterator
+    deque<T>::insert_aux(iterator position, const value_type& value)
+    {
+
+    }
 
 }
 
