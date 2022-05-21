@@ -1305,6 +1305,48 @@ namespace mystl
         start.set_node(new_nstart);
         finish.set_node(new_nstart + old_num_nodes - 1);
     }
+
+    template <class T>
+    bool operator==(const deque<T>& lhs, const deque<T>& rhs)
+    {
+        return lhs.size() == rhs.size() && mystl::equal(lhs.begin(), lhs.end(), rhs.begin());
+    }
+
+    template <class T>
+    bool operator!=(const deque<T>& lhs, const deque<T>& rhs)
+    {
+        return !(lhs == rhs);
+    }
+
+    template <class T>
+    bool opeator<(const deque<T>& lhs, const deque<T>& rhs)
+    {
+        return mystl::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
+    }
+
+    template <class T>
+    bool operator>(const deque<T>& lhs, const deque<T>& rhs)
+    {
+        return rhs < lhs;
+    }
+
+    template <class T>
+    bool operator<=(const deque<T>& lhs, const deque<T>& rhs)
+    {
+        return !(rhs > lhs);
+    }
+
+    template <class T>
+    bool operator>=(const deque<T>& lhs, const deque<T>& rhs)
+    {
+        return !(lhs < rhs);
+    }
+
+    template <class T>
+    void swap(deque<T>& lhs, deque<T>& rhs)
+    {
+        lhs.swap(rhs);
+    }
 }
 
 #endif //TINYSTL_DEQUE_H
