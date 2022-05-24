@@ -658,7 +658,7 @@ void test_len(size_t len1, size_t len2, size_t len3, size_t wide)
   std::cout << "\n|        mystl        |";                  \
   FUN_TEST_FORMAT1(mystl::con, fun, arg, len1);              \
   FUN_TEST_FORMAT1(mystl::con, fun, arg, len2);              \
-  FUN_TEST_FORMAT1(mystl::con, fun, arg, len3);    
+  FUN_TEST_FORMAT1(mystl::con, fun, arg, len3);
 
 #define CON_TEST_P2(con, fun, arg1, arg2, len1, len2, len3)  \
   TEST_LEN(len1, len2, len3, WIDE);                          \

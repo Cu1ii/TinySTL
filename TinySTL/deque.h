@@ -9,6 +9,7 @@
 // deque: 双向队列
 
 #include <initializer_list>
+#include <commctrl.h>
 #include "iterator.h"
 #include "memory.h"
 #include "util.h"
@@ -99,8 +100,8 @@ namespace mystl
 
         difference_type operator-(const self& x) const
         {
-            return static_cast<difference_type>(buffer_size) * (node - x.node)
-                + (cur - first) - (x.cur - x.first);
+            return static_cast<difference_type>(buffer_size) * (node - x.node - 1)
+                + (cur - first) + (x.last - x.cur);
         }
 
         self& operator++()
@@ -192,9 +193,9 @@ namespace mystl
     class deque
     {
     public:
-        typedef mystl::allocator<T>     allocator_type;
-        typedef mystl::allocator<T>     data_allocator;
-        typedef mystl::allocator<T>     map_allocator;
+        typedef mystl::allocator<T>                         allocator_type;
+        typedef mystl::allocator<T>                         data_allocator;
+        typedef mystl::allocator<T*>                        map_allocator;
 
         typedef typename allocator_type::value_type         value_type;
         typedef typename allocator_type::pointer            pointer;
@@ -214,13 +215,15 @@ namespace mystl
         allocator_type get_allocator() { return allocator_type(); }
 
         static const size_type buffer_size = deque_buf_size<T>::value;
-        static const size_type init_map_size = 8;
+        static const size_type init_map_size;
 
     private:
         iterator start;
         iterator finish;
         map_pointer map_;
         size_type map_size;
+
+    public:
 
         deque()
             : start(), finish(), map_(nullptr), map_size(0)
@@ -281,9 +284,9 @@ namespace mystl
                     erase(mystl::copy(rhs.begin(), rhs.end(), start), finish);
                 else
                 {
-                    const_iterator mid = rhs.begin() + distance_type(len);
+                    const_iterator mid = rhs.begin() + len;
                     mystl::copy(rhs.begin(), mid, start);
-                    insert(finish. mid, rhs.end());
+                    insert(finish, mid, rhs.end());
                 }
             }
             return *this;
@@ -318,8 +321,14 @@ namespace mystl
 
         ~deque()
         {
-            mystl::destroy(start, finish);
-            destroy_map_and_nodes();
+            if (map_ != nullptr)
+            {
+                clear();
+                data_allocator::deallocate(*start.node, buffer_size);
+                *start.node = nullptr;
+                map_allocator::deallocate(map_, map_size);
+                map_ = nullptr;
+            }
         }
 
     public:
@@ -361,7 +370,7 @@ namespace mystl
         { return rend(); }
 
         bool empty() const noexcept { return begin() == end(); }
-        size_type size() const noexcept { return start - finish; }
+        size_type size() const noexcept { return finish - start; }
         size_type max_size() const noexcept { return static_cast<size_type>(-1); }
 
         void resize(size_type new_size, const value_type& value)
@@ -449,7 +458,7 @@ namespace mystl
         void emplace_back(Args&& ...args);
 
         template <class ...Args>
-        void emplace(iterator pos, Args&& ...args);
+        iterator emplace(iterator pos, Args&& ...args);
 
         // push_front() / push_back()
         void push_front(const value_type& value)
@@ -485,7 +494,7 @@ namespace mystl
             else
             {
                 reserve_elements_at_back(1);
-                data_allocator::construct(finish.cur);
+                data_allocator::construct(finish.cur, value);
                 ++finish;
             }
         }
@@ -554,7 +563,7 @@ namespace mystl
 
         iterator insert(iterator position, value_type&& value)
         {
-            emplace(position, mystl::move(value));
+            return emplace(position, mystl::move(value));
         }
 
         void insert(iterator position, size_type n, const value_type& value);
@@ -563,23 +572,17 @@ namespace mystl
                 mystl::is_input_iterator<Iter>::value, int>::type = 0>
         void insert(iterator position, Iter first, Iter last)
         {
-            insert(pos, first, last, iterator_category(first));
+            insert(position, first, last, iterator_category(first));
         }
-
-        void resize(size_type new_size)
-        {
-            resize(new_size, value_type());
-        }
-
 
     public:
         // erase() / clear()
 
         iterator erase(iterator position)
         {
-            iterator nex = pos;
+            iterator nex = position;
             ++nex;
-            auto index = pos - start;
+            auto index = position - start;
             if (index < (size() >> 1))
             {
                 mystl::copy_backward(start, position, nex);
@@ -587,7 +590,7 @@ namespace mystl
             }
             else
             {
-                mystl::copy(nex, finish, pos);
+                mystl::copy(nex, finish, position);
                 pop_back();
             }
             return start + index;
@@ -668,15 +671,15 @@ namespace mystl
         // Allocation of map and nodes
         // 给 map 进行扩容以保证可以容纳新的节点. 实际上并没有增加节点
         // 同时扩容操作会改变 map_pointer 从而使得之前的 map_pointer 以及 deque 迭代器失效
-        void resever_map_at_back(size_type nodes_to_add = 1)
+        void reserve_map_at_back(size_type nodes_to_add = 1)
         {
             if (nodes_to_add + 1 > map_size - (finish.node - map_))
                 reallocate_map(nodes_to_add, false);
         }
 
-        void resever_map_at_front(size_type nodes_to_add = 1)
+        void reserve_map_at_front(size_type nodes_to_add = 1)
         {
-            if (nodes_to_add + 1 > start.node - map_)
+            if (nodes_to_add > start.node - map_)
                 reallocate_map(nodes_to_add, true);
         }
 
@@ -686,6 +689,9 @@ namespace mystl
 
         void deallocate_node(pointer x) { data_allocator::deallocate(x, buffer_size); }
     };
+
+    template <class T>
+    const typename deque<T>::size_type deque<T>::init_map_size = 8;
 
     template <class T>
     template <class ...Args>
@@ -732,7 +738,7 @@ namespace mystl
     template <class T>
     template <class ...Args>
     typename deque<T>::iterator
-    deque<T>::emplace(iterator pos, Args&& args...)
+    deque<T>::emplace(iterator pos, Args&& ...args)
     {
         if (pos.cur == start.cur)
         {
@@ -825,26 +831,6 @@ namespace mystl
 
     template <class T>
     typename deque<T>::iterator
-    deque<T>::erase(iterator position)
-    {
-        auto nex = position;
-        ++nex;
-        const size_type elems_before = position - start;
-        if (elems_before < (size() / 2))
-        {
-            mystl::copy_backward(start, position, nex);
-            pop_front();
-        }
-        else
-        {
-            mystl::copy(nex, finish, position);
-            pop_back();
-        }
-        return start + elems_before;
-    }
-
-    template <class T>
-    typename deque<T>::iterator
     deque<T>::erase(iterator first, iterator last)
     {
         if (first == start && last == finish)
@@ -902,9 +888,9 @@ namespace mystl
     void deque<T>::create_map_and_nodes(size_type num_elements)
     {
         size_type num_nodes = num_elements / buffer_size + 1;
-        map_size = max(initial_map_size, num_nodes + 2);
+        map_size = max(init_map_size, num_nodes + 2);
         map_ = map_allocator::allocate(map_size);
-        map_pointer nstart = map + (map_size - num_nodes) / 2;
+        map_pointer nstart = map_ + (map_size - num_nodes) / 2;
         map_pointer nfinish = nstart + num_nodes - 1;
         map_pointer cur = nstart;
         try
@@ -1032,7 +1018,7 @@ namespace mystl
     deque<T>::insert_aux(iterator position, Args&& ...args)
     {
         const size_type elems_before = position - start;
-        value_type value_copy = value_type(mystl::forward<Args>(args));
+        value_type value_copy = value_type(mystl::forward<Args>(args)...);
         if (elems_before < (size() / 2))
         {
             emplace_front(front());
@@ -1096,7 +1082,8 @@ namespace mystl
     {
         const size_type elems_before = position - start;
         const size_type value_copy = value;
-        if (elems_before < (size() / 2))
+        const size_type length = size();
+        if (elems_before < (length / 2))
         {
             iterator new_start = reserve_elements_at_front(n);
             iterator old_start = start;
@@ -1106,7 +1093,7 @@ namespace mystl
                 if (elems_before >= n)
                 {
                     iterator start_n = start + n;
-                    mystl::uninitialized_copy(start, position, old_start);
+                    mystl::uninitialized_copy(start, start_n, old_start);
                     start = new_start;
                     mystl::copy(start_n, position, old_start);
                     mystl::fill(position - n, position, value_copy);
@@ -1122,7 +1109,7 @@ namespace mystl
             }
             catch (...)
             {
-                destroy_map_and_nodes(new_start);
+                destroy_map_and_nodes();
                 throw ;
             }
         }
@@ -1130,7 +1117,7 @@ namespace mystl
         {
             iterator new_finish = reserve_elements_at_back(n);
             iterator old_finish = finish;
-            const size_type elems_after = size() - elems_before;
+            const size_type elems_after = length - elems_before;
             position = finish - elems_after;
             try
             {
@@ -1152,7 +1139,7 @@ namespace mystl
             }
             catch (...)
             {
-                destroy_map_and_nodes(new_finish);
+                destroy_map_and_nodes();
                 throw ;
             }
         }
@@ -1163,7 +1150,8 @@ namespace mystl
     void deque<T>::insert_aux(iterator position, ForwardIter first, ForwardIter last, size_type n)
     {
         const size_type elems_before = position - start;
-        if (elems_before < (size() / 2))
+        const size_type length = size();
+        if (elems_before < (length / 2))
         {
             auto new_start = reserve_elements_at_front(n);
             auto old_start = start;
@@ -1190,7 +1178,7 @@ namespace mystl
             }
             catch (...)
             {
-                destroy_map_and_nodes(new_start);
+                destroy_map_and_nodes();
                 throw ;
             }
         }
@@ -1198,7 +1186,7 @@ namespace mystl
         {
             auto new_finish = reserve_elements_at_back(n);
             auto old_finish = finish;
-            const size_type elems_after = size() - elems_before;
+            const size_type elems_after = length - elems_before;
             position = finish - elems_after;
             try
             {
@@ -1216,13 +1204,13 @@ namespace mystl
                     mystl::advance(mid, elems_after);
                     mystl::uninitialized_copy(position, finish,
                                               mystl::uninitialized_copy(mid, last, finish));
-                    start = new_finish;
+                    finish = new_finish;
                     mystl::copy(first, mid, position);
                 }
             }
             catch (...)
             {
-                destroy_map_and_nodes(new_finish);
+                destroy_map_and_nodes();
                 throw ;
             }
         }
@@ -1232,12 +1220,12 @@ namespace mystl
     void deque<T>::new_elements_at_front(size_type new_elements)
     {
         size_type new_nodes = (new_elements + buffer_size - 1) / buffer_size;
-        resever_map_at_front(new_nodes);
+        reserve_map_at_front(new_nodes);
         size_type i;
         try
         {
             for (i = 1; i <= new_nodes; ++i)
-                *(finish.node - i) = allocate_node();
+                *(start.node - i) = allocate_node();
         }
         catch (...)
         {
@@ -1250,17 +1238,17 @@ namespace mystl
     void deque<T>::new_elements_at_back(size_type new_elements)
     {
         size_type new_nodes = (new_elements + buffer_size - 1) / buffer_size;
-        resever_map_at_back(new_nodes);
+        reserve_map_at_back(new_nodes);
         size_type i;
         try
         {
             for (i = 1; i <= new_nodes; ++i)
-                *(finish + i) = allocate_node();
+                *(finish.node + i) = allocate_node();
         }
         catch (...)
         {
             for (size_type j = 1; j < i; ++j)
-                deallocate_node(*(finish + j));
+                deallocate_node(*(finish.node + j));
         }
     }
 
@@ -1286,8 +1274,7 @@ namespace mystl
         map_pointer new_nstart;
         if (map_size > 2 * new_num_nodes)
         {
-            new_start = map_ + (map_size - new_num_nodes) / 2
-                             + (add_at_front ? nodes_to_add : 0);
+            new_nstart = map_ + (map_size - new_num_nodes) / 2 + (add_at_front ? nodes_to_add : 0);
             if (new_nstart < start.node)
                 mystl::copy(start.node, finish.node + 1, new_nstart);
             else
@@ -1297,10 +1284,11 @@ namespace mystl
         {
             auto new_map_size = map_size + max(map_size, nodes_to_add) + 2;
             auto new_map = map_allocator::allocate(new_map_size);
-            new_nstart = new_map + (new_map_size - new_num_nodes) / 2
-                                 + (add_at_front ? nodes_to_add : 0);
+            new_nstart = new_map + (new_map_size - new_num_nodes) / 2 + (add_at_front ? nodes_to_add : 0);
             mystl::copy(start.node, finish.node + 1, new_nstart);
             map_allocator::deallocate(map_, map_size);
+            map_ = new_map,
+            map_size = new_map_size;
         }
         start.set_node(new_nstart);
         finish.set_node(new_nstart + old_num_nodes - 1);
@@ -1319,7 +1307,7 @@ namespace mystl
     }
 
     template <class T>
-    bool opeator<(const deque<T>& lhs, const deque<T>& rhs)
+    bool operator<(const deque<T>& lhs, const deque<T>& rhs)
     {
         return mystl::lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
     }
